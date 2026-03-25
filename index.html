@@ -3,83 +3,75 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NetSec Tracer - Simulador de Segurança</title>
+<title>NetSec Tracer PRO - Física e Roteamento</title>
 <style>
-  :root { --bg: #0b1120; --panel: #111827; --border: #1f2937; --text: #e5e7eb; --accent: #3b82f6; --error: #ef4444; --success: #10b981; }
+  :root { --bg: #0b1120; --panel: #111827; --border: #1f2937; --text: #e5e7eb; --accent: #3b82f6; --error: #ef4444; --warn: #f59e0b; --success: #10b981; }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
   body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
   
-  /* Header */
-  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-  .logo { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .logo { font-size: 16px; font-weight: 700; color: #fff; }
   .logo span { color: var(--accent); }
   
-  /* Layout */
   .workspace { display: flex; flex: 1; overflow: hidden; }
+  .sidebar, .inspector { width: 300px; background: var(--panel); display: flex; flex-direction: column; z-index: 10; }
+  .sidebar { border-right: 1px solid var(--border); }
+  .inspector { border-left: 1px solid var(--border); }
   
-  /* Toolbars & Panels */
-  .sidebar { width: 260px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-  .inspector { width: 300px; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
   .panel-header { padding: 12px 16px; background: #1f2937; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; border-bottom: 1px solid var(--border); }
   .panel-content { padding: 16px; overflow-y: auto; flex: 1; }
   
-  /* Tools */
   .tool-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: 1px solid transparent; color: var(--text); border-radius: 6px; cursor: pointer; text-align: left; transition: 0.2s; margin-bottom: 4px; }
   .tool-btn:hover { background: #1f2937; }
   .tool-btn.active { background: rgba(59, 130, 246, 0.1); border-color: var(--accent); color: var(--accent); }
   
-  /* Form Groups */
   .fg { margin-bottom: 12px; }
   .fg label { display: block; font-size: 11px; color: #9ca3af; margin-bottom: 4px; font-weight: 600; }
-  .fg input, .fg select { width: 100%; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: #fff; font-size: 13px; outline: none; }
+  .fg input, .fg select { width: 100%; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: #fff; font-size: 13px; outline: none; transition: 0.2s; }
   .fg input:focus, .fg select:focus { border-color: var(--accent); }
   
-  /* Canvas */
-  .canvas-container { flex: 1; position: relative; background: #0f172a; background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; }
+  .canvas-container { flex: 1; position: relative; background: #0f172a; background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; cursor: crosshair; }
   canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
   
-  /* Terminal / Bottom Panel */
-  .bottom-panel { height: 200px; background: #030712; border-top: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
-  .term-header { padding: 8px 16px; background: #111827; border-bottom: 1px solid var(--border); display: flex; gap: 10px; }
-  .term-content { flex: 1; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 13px; color: #10b981; overflow-y: auto; }
+  .bottom-panel { height: 220px; background: #030712; border-top: 1px solid var(--border); display: flex; flex-direction: column; }
+  .term-header { padding: 10px 16px; background: #111827; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; }
+  .term-content { flex: 1; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 13px; color: #10b981; overflow-y: auto; line-height: 1.5; }
   .term-content .err { color: var(--error); }
-  .term-content .warn { color: #f59e0b; }
+  .term-content .warn { color: var(--warn); }
+  .term-content .cmd { color: #fff; font-weight: bold; }
   
-  /* Buttons */
-  .btn { padding: 6px 12px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s; }
+  .btn { padding: 8px 14px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s; }
   .btn-blue { background: var(--accent); color: #fff; }
   .btn-blue:hover { background: #2563eb; }
   .btn-green { background: var(--success); color: #fff; }
   .btn-gray { background: #374151; color: #fff; }
   
-  /* Floating Mode Indicator */
-  #modeIndicator { position: absolute; top: 16px; left: 16px; background: rgba(17, 24, 39, 0.9); padding: 8px 16px; border-radius: 20px; border: 1px solid var(--border); font-size: 12px; font-weight: bold; pointer-events: none; }
+  .health-box { margin-top: 15px; padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.4; border: 1px solid transparent; }
+  .health-ok { background: rgba(16, 185, 129, 0.1); border-color: #10b981; color: #34d399; }
+  .health-warn { background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #fbbf24; }
+  .health-crit { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #fca5a5; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">📡 <span>NetSec</span> Tracer</div>
-  <div style="font-size: 12px; color: #9ca3af;">Modo: Construção & Lógica</div>
+  <div class="logo">📡 <span>NetSec</span> Tracer PRO</div>
+  <div style="font-size: 12px; color: #9ca3af;">Simulação Física & Lógica Ativa</div>
 </header>
 
 <div class="workspace">
   <div class="sidebar">
-    <div class="panel-header">Adicionar Equipamento</div>
-    <div class="panel-content" id="toolBox">
-      <button class="tool-btn active" onclick="setMode('select')" id="btn-select">👆 Selecionar / Mover</button>
-      <hr style="border:0; border-top:1px solid #1f2937; margin: 10px 0;">
-      <div style="font-size:10px; color:#6b7280; margin-bottom:8px; text-transform:uppercase;">Dispositivos Finais</div>
+    <div class="panel-header">Topologia e Equipamentos</div>
+    <div class="panel-content">
+      <button class="tool-btn active" onclick="setMode('select')" id="btn-select">👆 Selecionar (Nós e Cabos)</button>
+      <hr style="border-top:1px solid #1f2937; margin: 15px 0;">
+      <div style="font-size:10px; color:#6b7280; margin-bottom:8px; text-transform:uppercase;">Equipamentos</div>
+      <button class="tool-btn" onclick="setMode('add', 'router')">🌐 Roteador (Internet)</button>
+      <button class="tool-btn" onclick="setMode('add', 'nvr')">📼 DVR / NVR</button>
       <button class="tool-btn" onclick="setMode('add', 'camera')">📷 Câmera IP</button>
-      <button class="tool-btn" onclick="setMode('add', 'pc')">💻 Computador</button>
-      <button class="tool-btn" onclick="setMode('add', 'access')">🚪 Controladora de Acesso</button>
-      
-      <div style="font-size:10px; color:#6b7280; margin:16px 0 8px; text-transform:uppercase;">Equipamentos de Rede</div>
-      <button class="tool-btn" onclick="setMode('add', 'switch')">🔀 Switch</button>
-      <button class="tool-btn" onclick="setMode('add', 'router')">🌐 Roteador</button>
-      <button class="tool-btn" onclick="setMode('add', 'nvr')">📼 NVR / DVR</button>
-
-      <div style="font-size:10px; color:#6b7280; margin:16px 0 8px; text-transform:uppercase;">Cabeamento Físico</div>
+      <button class="tool-btn" onclick="setMode('add', 'switch')">🔀 Switch de Rede</button>
+      <hr style="border-top:1px solid #1f2937; margin: 15px 0;">
+      <div style="font-size:10px; color:#6b7280; margin-bottom:8px; text-transform:uppercase;">Camada Física (Layer 1)</div>
       <button class="tool-btn" onclick="setMode('cable', 'utp')">🖧 Cabo UTP (Cat5e/6)</button>
       <button class="tool-btn" onclick="setMode('cable', 'fiber')">⚡ Fibra Óptica</button>
     </div>
@@ -87,14 +79,13 @@
 
   <div class="canvas-container" id="cw">
     <canvas id="netCanvas"></canvas>
-    <div id="modeIndicator">Modo: Seleção</div>
   </div>
 
   <div class="inspector">
-    <div class="panel-header">Propriedades</div>
+    <div class="panel-header">Inspetor de Propriedades</div>
     <div class="panel-content" id="propPanel">
       <div style="text-align:center; color:#6b7280; font-size:12px; margin-top:40px;">
-        Selecione um dispositivo ou cabo no canvas para editar suas configurações.
+        Selecione um equipamento ou <b>clique na linha de um cabo</b> no projeto.
       </div>
     </div>
   </div>
@@ -102,412 +93,403 @@
 
 <div class="bottom-panel">
   <div class="term-header">
-    <div style="font-size: 12px; font-weight: bold; color:#9ca3af; line-height:24px;">Terminal de Teste (Ping)</div>
-    <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
-      <select id="pingSrc" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:4px; border-radius:4px; font-size:12px; width:120px;"></select>
-      <span style="color:#6b7280;">→</span>
-      <input type="text" id="pingDstIp" placeholder="IP de Destino..." style="background:#1f2937; color:#fff; border:1px solid #374151; padding:4px 8px; border-radius:4px; font-size:12px; width:130px;">
-      <button class="btn btn-green" onclick="runPing()">Ping</button>
-      <button class="btn btn-gray" onclick="clearTerm()">Limpar</button>
-    </div>
+    <div style="font-size: 12px; font-weight: bold; color:#9ca3af; margin-right: 20px;">Prompt de Comando</div>
+    <select id="pingSrc" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:6px; border-radius:4px; font-size:12px; width:150px;"></select>
+    <span style="color:#6b7280;">PING ➔</span>
+    <input type="text" id="pingDstIp" placeholder="IP Destino (Ex: 192.168.1.10)" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:6px 10px; border-radius:4px; font-size:12px; width:200px;">
+    <button class="btn btn-green" onclick="startPingSequence()" id="btnPing">Executar Ping</button>
+    <button class="btn btn-gray" onclick="document.getElementById('terminal').innerHTML=''" style="margin-left:auto;">Limpar</button>
   </div>
   <div class="term-content" id="terminal">
-    NetSec OS [Versão 1.0]<br>Pronto para simulação de pacotes ICMP.<br>──────────────────────────────────────────<br>
+    NetSec OS [Versão 3.0]<br>Pronto para diagnóstico ICMP.<br>──────────────────────────────────────────<br>
   </div>
 </div>
 
 <script>
-// --- ESTADO GLOBAL ---
-let mode = 'select'; // select, add, cable
-let subMode = ''; // tipo de device ou tipo de cabo
-let devices = [];
-let links = [];
-let selectedId = null;
-let cabStartId = null; // id do device inicial ao puxar cabo
-let mouseX = 0, mouseY = 0;
+// --- MODELOS DE DADOS ---
+let mode = 'select', subMode = '';
+let devices = [], links = [];
+let selectedDevId = null, selectedLinkId = null, cabStartId = null;
 
-// Configurações base dos equipamentos
 const DEVICE_TYPES = {
-  camera: { label: 'Câmera IP', icon: '📷', defIp: '192.168.1.10', defMask: '255.255.255.0' },
-  pc: { label: 'Computador', icon: '💻', defIp: '192.168.1.100', defMask: '255.255.255.0' },
-  access: { label: 'Controladora', icon: '🚪', defIp: '192.168.1.20', defMask: '255.255.255.0' },
-  switch: { label: 'Switch', icon: '🔀', defIp: '', defMask: '', isLayer2: true },
   router: { label: 'Roteador', icon: '🌐', defIp: '192.168.1.1', defMask: '255.255.255.0', isRouter: true },
-  nvr: { label: 'NVR', icon: '📼', defIp: '192.168.1.250', defMask: '255.255.255.0' }
+  nvr: { label: 'DVR/NVR', icon: '📼', defIp: '192.168.1.108', defMask: '255.255.255.0' },
+  camera: { label: 'Câmera IP', icon: '📷', defIp: '192.168.1.120', defMask: '255.255.255.0' },
+  switch: { label: 'Switch', icon: '🔀', defIp: '', defMask: '', isLayer2: true }
 };
 
 const CABLE_TYPES = {
-  utp: { color: '#3b82f6', maxDist: 100, name: 'Cabo UTP' },
-  fiber: { color: '#f59e0b', maxDist: 2000, name: 'Fibra Óptica' }
+  utp: { name: 'Cabo UTP', color: '#3b82f6', maxOpt: 90, maxLimit: 130 }, // Metros
+  fiber: { name: 'Fibra Óptica', color: '#f59e0b', maxOpt: 2000, maxLimit: 5000 }
 };
 
-// Setup Canvas
+// --- CONFIGURAÇÃO DO CANVAS ---
 const canvas = document.getElementById('netCanvas');
 const ctx = canvas.getContext('2d');
+function resize() { canvas.width = document.getElementById('cw').clientWidth; canvas.height = document.getElementById('cw').clientHeight; render(); }
+window.addEventListener('resize', resize); setTimeout(resize, 100);
 
-function resize() {
-  const container = document.getElementById('cw');
-  canvas.width = container.clientWidth;
-  canvas.height = container.clientHeight;
-  render();
-}
-window.addEventListener('resize', resize);
-setTimeout(resize, 100);
-
-// --- CONTROLES DE INTERFACE ---
-function setMode(newMode, newSubMode = '') {
-  mode = newMode;
-  subMode = newSubMode;
-  cabStartId = null;
-  selectedId = null;
-  
+function setMode(newMode, newSubMode='') {
+  mode = newMode; subMode = newSubMode; cabStartId = null; 
   document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
   event.currentTarget.classList.add('active');
-  
-  const ind = document.getElementById('modeIndicator');
-  if(mode === 'select') ind.textContent = 'Modo: Seleção & Propriedades';
-  if(mode === 'add') ind.textContent = `Modo: Inserir ${DEVICE_TYPES[subMode].label}`;
-  if(mode === 'cable') ind.textContent = `Modo: Conectar ${CABLE_TYPES[subMode].name}`;
-  
-  updateInspector();
   render();
 }
 
-function tLog(msg, type='') {
-  const term = document.getElementById('terminal');
-  term.innerHTML += `<div class="${type}">${msg}</div>`;
-  term.scrollTop = term.scrollHeight;
+// Matemática para clique no cabo (Distância Ponto-Reta)
+function distToSegment(px, py, x1, y1, x2, y2) {
+  let A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
+  let dot = A * C + B * D;
+  let len_sq = C * C + D * D;
+  let param = -1;
+  if (len_sq != 0) param = dot / len_sq;
+  let xx, yy;
+  if (param < 0) { xx = x1; yy = y1; }
+  else if (param > 1) { xx = x2; yy = y2; }
+  else { xx = x1 + param * C; yy = y1 + param * D; }
+  let dx = px - xx, dy = py - yy;
+  return Math.sqrt(dx * dx + dy * dy);
 }
-function clearTerm() { document.getElementById('terminal').innerHTML = ''; }
-
-function updatePingDropdown() {
-  const sel = document.getElementById('pingSrc');
-  sel.innerHTML = '<option value="">Sel. Origem...</option>' + 
-    devices.filter(d => !DEVICE_TYPES[d.type].isLayer2).map(d => `<option value="${d.id}">${d.name} (${d.ip})</option>`).join('');
-}
-
-// --- LÓGICA DE REDES BÁSICA ---
-function ip2long(ip) {
-  if(!ip) return 0;
-  return ip.split('.').reduce((ipInt, octet) => (ipInt << 8) + parseInt(octet, 10), 0) >>> 0;
-}
-function isSameSubnet(ip1, ip2, mask) {
-  if(!ip1 || !ip2 || !mask) return false;
-  return (ip2long(ip1) & ip2long(mask)) === (ip2long(ip2) & ip2long(mask));
-}
-
-// --- EVENTOS DO CANVAS ---
-canvas.addEventListener('mousemove', e => {
-  const rect = canvas.getBoundingClientRect();
-  mouseX = e.clientX - rect.left;
-  mouseY = e.clientY - rect.top;
-
-  if(mode === 'select' && cabStartId) {
-    const d = devices.find(x => x.id === cabStartId);
-    if(d) { d.x = mouseX; d.y = mouseY; render(); }
-  } else if (mode === 'cable' && cabStartId) {
-    render(); // Redesenha a linha do cabo seguindo o mouse
-  }
-});
 
 canvas.addEventListener('mousedown', e => {
   const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-
-  // Clicou em algum nó?
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  
+  // Verifica se clicou num equipamento
   let clickedDev = devices.slice().reverse().find(d => Math.hypot(d.x - mx, d.y - my) < 25);
+  // Verifica se clicou num cabo (se não clicou em equipamento)
+  let clickedLink = null;
+  if(!clickedDev && mode === 'select') {
+    clickedLink = links.find(l => {
+      const d1 = devices.find(d => d.id === l.n1), d2 = devices.find(d => d.id === l.n2);
+      return d1 && d2 && distToSegment(mx, my, d1.x, d1.y, d2.x, d2.y) < 8; // Raio de 8px para o clique
+    });
+  }
 
   if(mode === 'add') {
     const cfg = DEVICE_TYPES[subMode];
-    devices.push({
-      id: Date.now(),
-      type: subMode,
-      name: `${subMode.toUpperCase()}-${devices.length + 1}`,
-      x: mx, y: my,
-      ip: cfg.defIp,
-      mask: cfg.defMask,
-      gateway: ''
+    devices.push({ 
+      id: Date.now(), type: subMode, name: `${cfg.label} ${devices.length+1}`, 
+      x: mx, y: my, ip: cfg.defIp, mask: cfg.defMask, gateway: '', 
+      portSpeed: '100' // Default: Fast Ethernet (100Mbps)
     });
-    setMode('select');
-    updatePingDropdown();
-    render();
+    setMode('select'); updatePingDropdown(); render();
   } 
   else if (mode === 'select') {
-    if(clickedDev) {
-      selectedId = clickedDev.id;
-      cabStartId = clickedDev.id; // Para arrastar
-    } else {
-      selectedId = null;
-    }
-    updateInspector();
-    render();
-  }
+    selectedDevId = clickedDev ? clickedDev.id : null;
+    selectedLinkId = clickedLink ? clickedLink.id : null;
+    cabStartId = selectedDevId; // Para arrastar
+    updateInspector(); render();
+  } 
   else if (mode === 'cable') {
     if(clickedDev) {
-      if(!cabStartId) {
-        cabStartId = clickedDev.id; // Ponto A
-      } else if (cabStartId !== clickedDev.id) {
-        // Ponto B, cria o link
-        const exists = links.find(l => (l.n1===cabStartId && l.n2===clickedDev.id) || (l.n2===cabStartId && l.n1===clickedDev.id));
-        if(!exists) {
-          links.push({
-            id: Date.now(),
-            n1: cabStartId,
-            n2: clickedDev.id,
-            type: subMode,
-            distance: 50 // Distância padrão em metros
-          });
-        }
-        cabStartId = null;
-        setMode('select');
-        render();
+      if(!cabStartId) cabStartId = clickedDev.id;
+      else if(cabStartId !== clickedDev.id) {
+        // Cria o cabo
+        links.push({ id: Date.now(), n1: cabStartId, n2: clickedDev.id, type: subMode, distance: 30 }); // Default 30 metros
+        cabStartId = null; setMode('select'); render();
       }
-    } else {
-      cabStartId = null;
     }
   }
 });
 
-canvas.addEventListener('mouseup', () => {
-  if(mode === 'select') cabStartId = null; // Solta o arrasto
+canvas.addEventListener('mousemove', e => {
+  if(mode==='select' && cabStartId && e.buttons===1) {
+    const d = devices.find(x => x.id===cabStartId);
+    const rect = canvas.getBoundingClientRect();
+    if(d) { d.x = e.clientX - rect.left; d.y = e.clientY - rect.top; render(); }
+  }
 });
 
-// --- RENDERIZAÇÃO ---
-function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+// --- MOTOR DE FÍSICA E ATENUAÇÃO ---
+function getLinkHealth(linkId) {
+  const link = links.find(l => l.id === linkId);
+  const d1 = devices.find(d => d.id === link.n1);
+  const d2 = devices.find(d => d.id === link.n2);
+  if(!link || !d1 || !d2) return null;
 
-  // Desenhar Cabos
-  links.forEach(l => {
-    const d1 = devices.find(d => d.id === l.n1);
-    const d2 = devices.find(d => d.id === l.n2);
-    if(!d1 || !d2) return;
-    
-    ctx.beginPath();
-    ctx.moveTo(d1.x, d1.y);
-    ctx.lineTo(d2.x, d2.y);
-    ctx.strokeStyle = l.id === selectedId ? '#fff' : CABLE_TYPES[l.type].color;
-    ctx.lineWidth = 3;
-    ctx.stroke();
+  // Descobre a velocidade negociada (A menor velocidade entre as duas portas)
+  const speed = Math.min(parseInt(d1.portSpeed), parseInt(d2.portSpeed));
+  
+  let packetLoss = 0; // %
+  let status = 'ok';
+  let msg = 'Comunicação ideal.';
 
-    // Texto da distância
-    const midX = (d1.x + d2.x)/2;
-    const midY = (d1.y + d2.y)/2;
-    ctx.fillStyle = '#111827';
-    ctx.fillRect(midX - 15, midY - 8, 30, 16);
-    ctx.fillStyle = '#9ca3af';
-    ctx.font = '10px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(l.distance + 'm', midX, midY);
-  });
-
-  // Cabo sendo puxado
-  if(mode === 'cable' && cabStartId) {
-    const d1 = devices.find(d => d.id === cabStartId);
-    ctx.beginPath();
-    ctx.moveTo(d1.x, d1.y);
-    ctx.lineTo(mouseX, mouseY);
-    ctx.strokeStyle = CABLE_TYPES[subMode].color;
-    ctx.setLineDash([5, 5]);
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.setLineDash([]);
+  if (link.type === 'utp') {
+    if (link.distance > 130) {
+      status = 'crit'; packetLoss = 100; msg = 'Cabo rompido/sinal perdido. Distância excedeu o limite físico elétrico.';
+    } else if (link.distance > 90) {
+      // Regras de Velocidade vs Distância para UTP
+      if (speed === 1000) {
+        // Gigabit exige os 4 pares perfeitos. Cai rápido após 90m.
+        status = 'crit'; packetLoss = 80; msg = 'Atenuação severa. Gigabit (1000Mbps) não suporta UTP acima de 90m com estabilidade.';
+      } else if (speed === 100) {
+        status = 'warn'; packetLoss = 25; msg = 'Atenuação moderada. Risco de perda de pacotes e delay de rede (Fora da norma TIA/EIA).';
+      } else {
+        // 10Mbps aguenta mais (usado em CFTV analógico/IP longo)
+        status = 'warn'; packetLoss = 5; msg = 'Porta a 10Mbps compensa a distância. Risco aceitável de perda de pacotes.';
+      }
+    }
+  } else if (link.type === 'fiber') {
+    if(link.distance > 2000) { status = 'warn'; packetLoss = 10; msg = 'Limite teórico de fibra multimodo excedido.'; }
   }
 
-  // Desenhar Equipamentos
-  devices.forEach(d => {
-    const isSel = d.id === selectedId;
-    const isL2 = DEVICE_TYPES[d.type].isLayer2;
-    
-    // Fundo
-    ctx.beginPath();
-    ctx.arc(d.x, d.y, 22, 0, Math.PI*2);
-    ctx.fillStyle = isSel ? '#3b82f6' : '#1f2937';
-    ctx.fill();
-    ctx.strokeStyle = isSel ? '#fff' : '#374151';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // Ícone
-    ctx.font = '20px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(DEVICE_TYPES[d.type].icon, d.x, d.y + 2);
-
-    // Labels
-    ctx.fillStyle = '#e5e7eb';
-    ctx.font = '11px sans-serif';
-    ctx.fillText(d.name, d.x, d.y + 35);
-    
-    if(!isL2 && d.ip) {
-      ctx.fillStyle = '#6b7280';
-      ctx.font = '10px monospace';
-      ctx.fillText(d.ip, d.x, d.y + 48);
-    }
-  });
+  return { speed, status, packetLoss, msg };
 }
 
 // --- INSPETOR DE PROPRIEDADES ---
 function updateInspector() {
   const panel = document.getElementById('propPanel');
-  const dev = devices.find(d => d.id === selectedId);
   
-  if(dev) {
-    const isL2 = DEVICE_TYPES[dev.type].isLayer2;
+  if(selectedDevId) {
+    const dev = devices.find(d => d.id === selectedDevId);
     let html = `
-      <div class="fg"><label>Nome</label><input type="text" id="propName" value="${dev.name}" oninput="saveProp('name', this.value)"></div>
-      <div class="fg"><label>Tipo de Equipamento</label><input type="text" value="${DEVICE_TYPES[dev.type].label}" disabled></div>
-    `;
-    
-    if(!isL2) {
+      <div style="font-size:14px; font-weight:bold; color:#fff; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
+        ${DEVICE_TYPES[dev.type].icon} Configuração do Equipamento
+      </div>
+      <div class="fg"><label>Nome / Identificação</label><input type="text" value="${dev.name}" oninput="dev.name=this.value; updatePingDropdown(); render();"></div>
+      <div class="fg"><label>Velocidade da Porta de Rede</label>
+        <select onchange="dev.portSpeed=this.value; render();">
+          <option value="10" ${dev.portSpeed==='10'?'selected':''}>10 Mbps (Half/Full)</option>
+          <option value="100" ${dev.portSpeed==='100'?'selected':''}>100 Mbps (Fast Ethernet)</option>
+          <option value="1000" ${dev.portSpeed==='1000'?'selected':''}>1000 Mbps (Gigabit)</option>
+        </select>
+      </div>`;
+      
+    if(!DEVICE_TYPES[dev.type].isLayer2) {
       html += `
-        <hr style="border:0; border-top:1px solid #1f2937; margin: 15px 0;">
-        <div class="fg"><label>Endereço IP (IPv4)</label><input type="text" id="propIp" value="${dev.ip}" placeholder="Ex: 192.168.1.10" oninput="saveProp('ip', this.value)"></div>
-        <div class="fg"><label>Máscara de Sub-rede</label><input type="text" id="propMask" value="${dev.mask}" placeholder="Ex: 255.255.255.0" oninput="saveProp('mask', this.value)"></div>
-        <div class="fg"><label>Gateway Padrão</label><input type="text" id="propGw" value="${dev.gateway}" placeholder="Ex: 192.168.1.1" oninput="saveProp('gateway', this.value)"></div>
-      `;
+        <hr style="border-top:1px solid #374151; margin:15px 0;">
+        <div class="fg"><label>Endereço IP</label><input type="text" value="${dev.ip}" oninput="dev.ip=this.value; render();"></div>
+        <div class="fg"><label>Máscara de Sub-rede</label><input type="text" value="${dev.mask}" oninput="dev.mask=this.value;"></div>
+        <div class="fg"><label>Gateway Padrão</label><input type="text" value="${dev.gateway}" oninput="dev.gateway=this.value;"></div>`;
     }
-    
-    html += `<button class="btn btn-error" style="width:100%; margin-top:20px; background:#7f1d1d; color:#fca5a5" onclick="deleteDev(${dev.id})">Excluir Dispositivo</button>`;
+    html += `<button class="btn btn-gray" style="width:100%; margin-top:10px; border:1px solid #ef4444; color:#ef4444;" onclick="deleteItem('dev', ${dev.id})">Excluir Equipamento</button>`;
     panel.innerHTML = html;
-    return;
-  }
-  
-  // Aqui poderia ter também a edição de links (para alterar a distância do cabo), omitido por brevidade
-  panel.innerHTML = `<div style="text-align:center; color:#6b7280; font-size:12px; margin-top:40px;">Selecione um dispositivo para editar.</div>`;
-}
-
-function saveProp(key, val) {
-  const dev = devices.find(d => d.id === selectedId);
-  if(dev) {
-    dev[key] = val;
-    render();
-    if(key === 'ip' || key === 'name') updatePingDropdown();
-  }
-}
-
-function deleteDev(id) {
-  devices = devices.filter(d => d.id !== id);
-  links = links.filter(l => l.n1 !== id && l.n2 !== id);
-  selectedId = null;
-  updateInspector();
-  updatePingDropdown();
-  render();
-}
-
-// --- LÓGICA DO PING EDUCACIONAL ---
-function runPing() {
-  const srcId = parseInt(document.getElementById('pingSrc').value);
-  const dstIp = document.getElementById('pingDstIp').value.trim();
-  
-  if(!srcId || !dstIp) {
-    tLog('Erro: Selecione a origem e digite o IP de destino.', 'err');
-    return;
-  }
-  
-  const src = devices.find(d => d.id === srcId);
-  tLog('');
-  tLog(`C:\\> ping ${dstIp}`);
-  tLog(`Disparando contra ${dstIp} com 32 bytes de dados:`);
-
-  // 1. Descobrir qual nó tem esse IP
-  const dst = devices.find(d => d.ip === dstIp);
-  
-  setTimeout(() => processPingLogic(src, dstIp, dst), 600);
-}
-
-function processPingLogic(src, targetIp, dstDev) {
-  // A. Destino não existe na topologia
-  if(!dstDev) {
-    printPingResult(false, 'Esgotado o tempo limite do pedido.');
-    return;
-  }
-
-  // B. Verificar Conectividade Lógica (Camada 3)
-  let logicalReach = false;
-  if(isSameSubnet(src.ip, dstDev.ip, src.mask)) {
-    logicalReach = true; // Estão na mesma sub-rede
+  } 
+  else if (selectedLinkId) {
+    const link = links.find(l => l.id === selectedLinkId);
+    const health = getLinkHealth(link.id);
+    const typeLabel = CABLE_TYPES[link.type].name;
+    
+    panel.innerHTML = `
+      <div style="font-size:14px; font-weight:bold; color:#fff; margin-bottom:15px;">🔗 Propriedades do Enlace</div>
+      <div class="fg"><label>Tipo de Mídia</label><input type="text" value="${typeLabel}" disabled style="background:#1f2937"></div>
+      <div class="fg"><label>Comprimento Lançado (Metros)</label>
+        <input type="number" value="${link.distance}" oninput="link.distance=parseInt(this.value)||0; updateInspector(); render();">
+      </div>
+      <div class="health-box health-${health.status}">
+        <b>Diagnóstico Físico:</b><br>${health.msg}<br>
+        <div style="margin-top:5px; font-size:11px; opacity:0.8;">
+          Negociação: ${health.speed} Mbps<br>
+          Perda Estimada: ${health.packetLoss}%
+        </div>
+      </div>
+      <button class="btn btn-gray" style="width:100%; margin-top:20px; border:1px solid #ef4444; color:#ef4444;" onclick="deleteItem('link', ${link.id})">Cortar Cabo</button>
+    `;
   } else {
-    // Estão em sub-redes diferentes. Precisa de roteador.
-    if(!src.gateway) {
-      printPingResult(false, `Resposta de ${src.ip}: Host de destino inacessível. (Sem Gateway configurado)`);
-      return;
-    }
-    // Simplificação: Assume que se ambos têm gateway apontando pro roteador, existe rota.
-    // Numa versão mais complexa, faríamos uma tabela de roteamento.
-    const router = devices.find(d => DEVICE_TYPES[d.type].isRouter && d.ip === src.gateway);
-    if(router && dstDev.gateway) {
-      logicalReach = true; 
-    } else {
-      printPingResult(false, `Resposta de ${src.gateway || src.ip}: Host de destino inacessível.`);
-      return;
-    }
+    panel.innerHTML = '<div style="text-align:center; color:#6b7280; font-size:12px; margin-top:40px;">Selecione um equipamento ou linha de cabo.</div>';
   }
+}
 
-  // C. Verificar Conectividade Física (Busca em Largura - BFS pelo Grafo)
-  const path = findPhysicalPath(src.id, dstDev.id);
+function deleteItem(type, id) {
+  if(type==='dev') { devices = devices.filter(d=>d.id!==id); links = links.filter(l=>l.n1!==id && l.n2!==id); selectedDevId = null; }
+  if(type==='link') { links = links.filter(l=>l.id!==id); selectedLinkId = null; }
+  updateInspector(); updatePingDropdown(); render();
+}
+
+// --- RENDERIZAÇÃO DO CANVAS ---
+function render() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   
-  if(!path) {
-    printPingResult(false, 'Esgotado o tempo limite do pedido. (Sem conexão física)');
-    return;
-  }
-
-  // D. Limitações Físicas (Atenuação do Cabo)
-  // Checar se algum cabo UTP no caminho tem > 100m
-  let cableFailure = false;
-  path.edges.forEach(link => {
-    if(link.type === 'utp' && link.distance > 100) {
-      cableFailure = true;
-    }
+  // Desenhar Cabos
+  links.forEach(l => {
+    const d1 = devices.find(d => d.id === l.n1), d2 = devices.find(d => d.id === l.n2);
+    if(!d1 || !d2) return;
+    const isSel = l.id === selectedLinkId;
+    const health = getLinkHealth(l.id);
+    
+    ctx.beginPath(); ctx.moveTo(d1.x, d1.y); ctx.lineTo(d2.x, d2.y);
+    // Cor muda baseada na saúde do cabo (Camada 1)
+    if (health.status === 'crit') ctx.strokeStyle = '#ef4444';
+    else if (health.status === 'warn') ctx.strokeStyle = '#f59e0b';
+    else ctx.strokeStyle = isSel ? '#fff' : CABLE_TYPES[l.type].color;
+    
+    ctx.lineWidth = isSel ? 4 : 2;
+    if(health.status === 'crit') ctx.setLineDash([5, 5]); // Cabo falhando fica tracejado
+    else ctx.setLineDash([]);
+    ctx.stroke(); ctx.setLineDash([]);
+    
+    // Rótulo da Metragem no meio do cabo
+    const midX = (d1.x + d2.x)/2, midY = (d1.y + d2.y)/2;
+    ctx.fillStyle = isSel ? '#fff' : '#1f2937';
+    ctx.fillRect(midX - 16, midY - 9, 32, 18);
+    ctx.fillStyle = isSel ? '#000' : (health.status==='crit' ? '#ef4444' : '#9ca3af');
+    ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${l.distance}m`, midX, midY);
   });
 
-  if(cableFailure) {
-    tLog(`Aviso de Camada 1: Atenuação de sinal severa detectada no trajeto UTP (>100m).`, 'warn');
-    printPingResult(false, 'Esgotado o tempo limite do pedido. (Perda de pacote)');
-    return;
-  }
-
-  // Sucesso!
-  printPingResult(true, `Resposta de ${targetIp}: bytes=32 tempo<1ms TTL=64`);
-}
-
-function printPingResult(success, msg) {
-  let count = 0;
-  const interval = setInterval(() => {
-    tLog(msg, success ? '' : 'err');
-    count++;
-    if(count >= 4) {
-      clearInterval(interval);
-      tLog(`Estatísticas do Ping: Enviados = 4, Recebidos = ${success?4:0}, Perdidos = ${success?0:4}`);
+  // Desenhar Nós
+  devices.forEach(d => {
+    const isSel = d.id === selectedDevId;
+    ctx.beginPath(); ctx.arc(d.x, d.y, 20, 0, Math.PI*2);
+    ctx.fillStyle = isSel ? '#3b82f6' : '#1f2937'; ctx.fill();
+    ctx.strokeStyle = isSel ? '#fff' : '#374151'; ctx.lineWidth = 2; ctx.stroke();
+    
+    ctx.font = '18px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(DEVICE_TYPES[d.type].icon, d.x, d.y + 2);
+    ctx.fillStyle = '#e5e7eb'; ctx.font = '11px sans-serif'; ctx.fillText(d.name, d.x, d.y + 32);
+    
+    if(!DEVICE_TYPES[d.type].isLayer2 && d.ip) { 
+      ctx.fillStyle = '#9ca3af'; ctx.font = '10px monospace'; ctx.fillText(d.ip, d.x, d.y + 44); 
     }
-  }, 800);
+    // Indicador de velocidade
+    ctx.fillStyle = '#3b82f6'; ctx.font = '9px sans-serif'; ctx.fillText(`${d.portSpeed}M`, d.x + 25, d.y - 15);
+  });
 }
 
-// Algoritmo de Busca para encontrar se há um caminho físico entre os cabos
-function findPhysicalPath(startId, endId) {
-  const queue = [{ id: startId, edges: [] }];
-  const visited = new Set([startId]);
+// --- LOGICA DE ROTEAMENTO (Simples IP to Long) ---
+function ipToLong(ip) { return ip.split('.').reduce((acc, oct) => (acc << 8) + parseInt(oct), 0) >>> 0; }
+function isSameSubnet(ip1, ip2, mask) { return (ipToLong(ip1) & ipToLong(mask)) === (ipToLong(ip2) & ipToLong(mask)); }
+
+// --- MOTOR DE PING (ASINCRONO E REALISTA) ---
+function tLog(msg, type='') { 
+  const term = document.getElementById('terminal');
+  term.innerHTML += `<div class="${type}">${msg}</div>`;
+  term.scrollTop = term.scrollHeight;
+}
+function updatePingDropdown() { 
+  document.getElementById('pingSrc').innerHTML = '<option value="">Sel. Origem...</option>' + 
+    devices.filter(d=>!DEVICE_TYPES[d.type].isLayer2 && d.ip).map(d=>`<option value="${d.id}">${d.name} (${d.ip})</option>`).join('');
+}
+
+// Algoritmo BFS para achar o caminho e calcular a pior perda de pacotes
+function traceRoute(srcId, dstId) {
+  let queue = [{ id: srcId, pathNodes: [srcId], pathLinks: [] }];
+  let visited = new Set([srcId]);
 
   while(queue.length > 0) {
-    const current = queue.shift();
-    if(current.id === endId) return current; // Achou o caminho
+    let curr = queue.shift();
+    if(curr.id === dstId) return curr; // Achou caminho físico
 
-    // Achar todos os links conectados a este nó
-    const connectedLinks = links.filter(l => l.n1 === current.id || l.n2 === current.id);
-    
-    for(let link of connectedLinks) {
-      const nextId = link.n1 === current.id ? l.n2 : l.n1;
+    let edges = links.filter(l => l.n1 === curr.id || l.n2 === curr.id);
+    for(let edge of edges) {
+      let nextId = edge.n1 === curr.id ? edge.n2 : edge.n1;
       if(!visited.has(nextId)) {
         visited.add(nextId);
-        queue.push({
-          id: nextId,
-          edges: [...current.edges, link]
-        });
+        queue.push({ id: nextId, pathNodes: [...curr.pathNodes, nextId], pathLinks: [...curr.pathLinks, edge.id] });
       }
     }
   }
-  return null; // Sem caminho físico
+  return null;
+}
+
+let pingInProgress = false;
+
+async function startPingSequence() {
+  if(pingInProgress) return;
+  
+  const srcId = parseInt(document.getElementById('pingSrc').value);
+  const dstIp = document.getElementById('pingDstIp').value.trim();
+  
+  if(!srcId || !dstIp) { tLog('Erro: Defina a origem e o IP de destino.', 'err'); return; }
+  
+  const src = devices.find(d => d.id === srcId);
+  const dst = devices.find(d => d.ip === dstIp);
+  
+  document.getElementById('btnPing').disabled = true;
+  pingInProgress = true;
+  
+  tLog('');
+  tLog(`C:\\> ping ${dstIp}`, 'cmd');
+  tLog(`Disparando contra ${dstIp} com 32 bytes de dados:`);
+  
+  // Sleep simulado
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  await sleep(600);
+
+  // 1. Verificação Lógica (Subrede)
+  let logicalPass = false;
+  if(dst) {
+    if(isSameSubnet(src.ip, dst.ip, src.mask)) {
+      logicalPass = true;
+    } else if (src.gateway) {
+      // Se tem gateway configurado, checa se o roteador existe na rede
+      const router = devices.find(d => d.type === 'router' && d.ip === src.gateway);
+      if(router && dst.gateway) logicalPass = true; // Simplificação de roteamento
+    }
+  }
+
+  if(!logicalPass || !dst) {
+    for(let i=0; i<4; i++) {
+      tLog(`Resposta de ${src.gateway || src.ip}: Host de destino inacessível.`, 'err');
+      await sleep(1000);
+    }
+    tLog(`Estatísticas do Ping para ${dstIp}: Pacotes: Enviados = 4, Recebidos = 0, Perdidos = 4`);
+    finishPing(); return;
+  }
+
+  // 2. Verificação Física e Atenuação (Traçando o caminho)
+  const route = traceRoute(src.id, dst.id);
+  if(!route) {
+    for(let i=0; i<4; i++) { tLog('Esgotado o tempo limite do pedido.', 'err'); await sleep(1000); }
+    tLog(`Estatísticas do Ping para ${dstIp}: Pacotes: Enviados = 4, Recebidos = 0, Perdidos = 4`);
+    finishPing(); return;
+  }
+
+  // Calcula a saúde do caminho inteiro
+  let maxLoss = 0;
+  let baseLatency = 1; // ms mínimo
+  route.pathLinks.forEach(linkId => {
+    const h = getLinkHealth(linkId);
+    if(h.packetLoss > maxLoss) maxLoss = h.packetLoss;
+    // Aumenta latência sutilmente com base na distância e switches passados
+    const l = links.find(x=>x.id===linkId);
+    baseLatency += (l.distance / 50); 
+  });
+
+  if(maxLoss > 0) {
+    tLog(`[DIAGNÓSTICO L1] Atenuação detectada no trajeto. Chance de perda: ${maxLoss}%`, 'warn');
+  }
+
+  // 3. Disparando os 4 ICMPs com Física
+  let sent = 4, recv = 0;
+  let times = [];
+
+  for(let i=0; i<4; i++) {
+    // Rolagem de "dados" para ver se o pacote se perde na atenuação do cabo
+    const isLost = (Math.random() * 100) < maxLoss;
+    
+    if(isLost) {
+      tLog('Esgotado o tempo limite do pedido.', 'err');
+    } else {
+      // Jitter na latência
+      let jitter = Math.random() * 3;
+      if(maxLoss > 10) jitter += Math.random() * 20; // Cabo ruim causa variações brutas
+      const t = Math.max(1, Math.round(baseLatency + jitter));
+      times.push(t);
+      tLog(`Resposta de ${dstIp}: bytes=32 tempo=${t < 1 ? '<1' : t}ms TTL=64`);
+      recv++;
+    }
+    await sleep(1000);
+  }
+
+  // Estatísticas Finais
+  tLog('');
+  tLog(`Estatísticas do Ping para ${dstIp}:`);
+  tLog(`    Pacotes: Enviados = 4, Recebidos = ${recv}, Perdidos = ${sent - recv} (${Math.round(((sent-recv)/4)*100)}% de perda)`);
+  if(recv > 0) {
+    const min = Math.min(...times), max = Math.max(...times), avg = Math.round(times.reduce((a,b)=>a+b,0)/times.length);
+    tLog(`Aproximação de um tempo de ida e volta em milissegundos:`);
+    tLog(`    Mínimo = ${min}ms, Máximo = ${max}ms, Média = ${avg}ms`);
+  }
+  
+  finishPing();
+}
+
+function finishPing() {
+  document.getElementById('btnPing').disabled = false;
+  pingInProgress = false;
+  tLog('──────────────────────────────────────────');
 }
 </script>
 </body>
