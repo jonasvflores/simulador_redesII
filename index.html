@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NetSec Tracer ULTIMATE v5 - Ecossistema Completo</title>
+<title>NetSec Tracer MASTER - Simulador CFTV & Redes</title>
 <style>
   :root { --bg: #1e1e1e; --panel: #252526; --border: #3e3e42; --text: #d4d4d4; --accent: #007acc; --error: #f44336; --warn: #ff9800; --success: #4caf50; }
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
   body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
   
+  /* HEADER & WORKSPACE */
   header { background: #1e1e1e; border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
   .logo { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 1px;}
   .logo span { color: var(--accent); }
@@ -17,15 +18,15 @@
   .workspace { display: flex; flex: 1; overflow: hidden; position: relative; }
   .palette, .inspector { width: 300px; background: var(--panel); display: flex; flex-direction: column; z-index: 10; flex-shrink: 0; }
   .palette { border-right: 1px solid var(--border); overflow-y: auto;}
-  .inspector { border-left: 1px solid var(--border); }
+  .inspector { border-left: 1px solid var(--border); overflow-y: auto; }
   
-  /* Scrollbar customizada para a paleta */
-  .palette::-webkit-scrollbar { width: 6px; }
-  .palette::-webkit-scrollbar-thumb { background: #3e3e42; border-radius: 4px; }
+  .palette::-webkit-scrollbar, .inspector::-webkit-scrollbar { width: 6px; }
+  .palette::-webkit-scrollbar-thumb, .inspector::-webkit-scrollbar-thumb { background: #3e3e42; border-radius: 4px; }
   
   .panel-header { background: #2d2d30; padding: 10px 15px; font-size: 11px; font-weight: bold; text-transform: uppercase; color: #858585; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2;}
   .panel-content { padding: 10px; flex: 1; }
   
+  .cat-title { font-size: 10px; font-weight: bold; color: #007acc; text-transform: uppercase; margin: 15px 0 8px 0; border-bottom: 1px solid #333; padding-bottom: 4px;}
   .tool-btn { width: 100%; padding: 8px 10px; background: #333337; border: 1px solid transparent; color: #ccc; border-radius: 4px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 13px; transition: 0.2s; }
   .tool-btn:hover { background: #3f3f46; color: #fff; }
   .tool-btn.active { background: rgba(0, 122, 204, 0.2); border-color: var(--accent); color: #fff; }
@@ -42,11 +43,13 @@
   .fg label { display: block; font-size: 11px; color: #9ca3af; margin-bottom: 4px; font-weight: bold; }
   .fg input, .fg select { width: 100%; padding: 8px 10px; background: #1e1e1e; border: 1px solid #3e3e42; border-radius: 4px; color: #fff; font-size: 12px; outline: none; }
   .fg input:focus, .fg select:focus { border-color: var(--accent); }
+  .fg input:disabled { color: #858585; background: #2d2d30; }
   
-  .canvas-wrap { flex: 1; position: relative; background-color: #1e1e1e; overflow: hidden; }
-  canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; outline: none; }
+  /* CANVAS & TERMINAL */
+  .canvas-wrap { flex: 1; position: relative; background-color: #1e1e1e; overflow: hidden; outline: none;}
+  canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
   
-  .bottom-panel { height: 200px; background: #1e1e1e; border-top: 1px solid var(--border); display: flex; flex-direction: column; z-index: 20; }
+  .bottom-panel { height: 220px; background: #1e1e1e; border-top: 1px solid var(--border); display: flex; flex-direction: column; z-index: 20; }
   .term-header { padding: 8px 16px; background: #252526; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; }
   .term-content { flex: 1; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 13px; color: #4caf50; overflow-y: auto; line-height: 1.5; background: #0b0b0b; }
   .term-content .err { color: #f44336; }
@@ -57,90 +60,101 @@
   .health-ok { border-left: 3px solid #4caf50; color: #81c784; }
   .health-warn { border-left: 3px solid #ff9800; color: #ffb74d; }
   .health-crit { border-left: 3px solid #f44336; color: #e57373; }
+  
+  /* POE GAUGE */
+  .poe-bar-bg { width: 100%; background: #3e3e42; height: 14px; border-radius: 7px; overflow: hidden; margin-top: 5px; position: relative;}
+  .poe-bar-fill { height: 100%; background: #4caf50; transition: 0.3s; }
+  .poe-bar-fill.overload { background: #f44336; }
+  .poe-txt { position: absolute; width:100%; text-align:center; top:0; font-size: 9px; font-weight: bold; line-height: 14px; color: #fff;}
 
-  /* Modals */
-  .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
-  .browser-window { width: 900px; height: 600px; background: #fff; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+  /* MODAL: BROWSER FAKE */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+  .browser-window { width: 900px; height: 600px; background: #fff; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.5); border: 1px solid #555;}
   .browser-header { background: #e0e0e0; padding: 10px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #ccc; }
   .browser-dots div { width: 12px; height: 12px; border-radius: 50%; background: #ff5f56; cursor: pointer; }
   .browser-dots div:nth-child(2) { background: #ffbd2e; }
   .browser-dots div:nth-child(3) { background: #27c93f; }
   .browser-url { flex: 1; background: #fff; padding: 4px 10px; border-radius: 20px; font-size: 12px; color: #333; border: 1px solid #ccc; font-family: monospace; }
+  .os-wrapper { flex: 1; display: flex; position: relative; color: #333; background: #fff;}
   
-  .cat-title { font-size: 10px; font-weight: bold; color: #007acc; text-transform: uppercase; margin: 15px 0 8px 0; border-bottom: 1px solid #333; padding-bottom: 4px;}
+  /* THEME: TP-LINK */
+  .tplink-container { display: flex; flex-direction: column; width: 100%; }
+  .tplink-header { background: #0099cc; color: #fff; padding: 15px 20px; font-size: 24px; font-weight: bold; display: flex; justify-content: space-between; align-items: flex-end;}
+  .tplink-nav { width: 220px; background: #f2f2f2; border-right: 1px solid #ccc; padding: 10px; }
+  .tplink-nav div { padding: 10px; cursor: pointer; color: #006699; font-size: 13px; border-bottom: 1px solid #e0e0e0; font-weight: bold; }
+  .tplink-nav div:hover { background: #e0e0e0; }
+  .tplink-nav div.active { background: #0099cc; color: #fff; }
+  .tplink-content { flex: 1; padding: 25px; overflow-y: auto; }
+  
+  /* THEME: INTELBRAS */
+  .intelbras-container { display: flex; flex-direction: column; width: 100%; background: #f4f5f7; }
+  .intelbras-header { background: #fff; border-bottom: 2px solid #00a859; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+  .intelbras-logo { color: #00a859; font-size: 24px; font-weight: 900; letter-spacing: -1px; }
+  .intelbras-nav { width: 250px; background: #2c3e50; padding: 20px 0; }
+  .intelbras-nav div { padding: 12px 30px; color: #ecf0f1; cursor: pointer; font-size: 14px; border-left: 4px solid transparent; }
+  .intelbras-nav div:hover { background: #34495e; }
+  .intelbras-nav div.active { background: #00a859; border-left-color: #fff; font-weight: bold; }
+  .intelbras-content { flex: 1; padding: 30px; background: #fff; margin: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow-y: auto;}
+
+  /* THEME: ISP PROVEDOR */
+  .isp-container { display: flex; flex-direction: column; width: 100%; }
+  .isp-header { background: #d32f2f; color: #fff; padding: 20px; display: flex; justify-content: space-between; align-items: center; font-weight: bold;}
+  .isp-nav-top { background: #333; display: flex; padding: 0 20px; }
+  .isp-nav-top div { padding: 12px 20px; color: #fff; cursor: pointer; font-size: 14px; }
+  .isp-nav-top div.active { background: #f44336; }
+  .isp-content { flex: 1; padding: 30px; background: #fafafa; overflow-y: auto;}
+
+  /* OS SHARED FORMS */
+  .os-form-group { display: flex; margin-bottom: 15px; align-items: center; }
+  .os-form-group label { width: 180px; font-weight: bold; font-size: 13px; color: #555; }
+  .os-form-group input, .os-form-group select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; width: 220px; background: #fff; color: #333;}
+  .os-btn { padding: 8px 20px; background: var(--accent); color: #fff; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; }
+  .os-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; color: #333;}
+  .os-table th, .os-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  .os-table th { background: #f2f2f2; }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">📡 <span>NetSec</span> Tracer v5.0</div>
-  <div class="top-hints">🖱️ Scroll: Zoom | 🖐️ Segurar Espaço + Arrastar: Pan | 🖱️ Duplo clique: Configurar Roteador</div>
+  <div class="logo">📡 <span>NetSec</span> Tracer v6.0 MASTER</div>
+  <div class="top-hints">🖱️ Scroll: Zoom | 🖐️ Espaço + Arrastar: Mover Tela | 🖱️ Duplo Clique: OS Roteador</div>
 </header>
 
 <div class="workspace">
   <div class="palette">
-    <div class="panel-header">Ferramentas & Ativos</div>
+    <div class="panel-header">Ferramentas Base</div>
     <div class="panel-content">
-      
-      <button class="tool-btn active" onclick="setMode('select')">
-        <span style="font-size:18px">👆</span><div><b>Selecionar / Mover</b><span class="tool-sub">Edite equipamentos e cabos</span></div>
-      </button>
-      <button class="tool-btn" onclick="setMode('delete')" style="border-left: 3px solid #f44336;">
-        <span style="font-size:18px">❌</span><div><b>Excluir</b><span class="tool-sub">Remover itens (Tecla DEL)</span></div>
-      </button>
+      <button class="tool-btn active" onclick="setMode('select')"><span style="font-size:18px">👆</span><div><b>Selecionar / Mover</b><span class="tool-sub">Editar e inspecionar</span></div></button>
+      <button class="tool-btn" onclick="setMode('delete')" style="border-left: 3px solid #f44336;"><span style="font-size:18px">❌</span><div><b>Excluir (Delete)</b><span class="tool-sub">Remover nós e cabos</span></div></button>
 
-      <div class="cat-title">Camada 3 (Roteamento)</div>
-      <button class="tool-btn" onclick="setMode('add', 'router-isp')">
-        <span style="font-size:18px">🌐</span><div><b>Modem Provedor</b><span class="tool-sub">Link de Internet (WAN/LAN)</span></div>
-      </button>
-      <button class="tool-btn" onclick="setMode('add', 'router-intelbras')">
-        <span style="font-size:18px">📶</span><div><b>Roteador Corporativo</b><span class="tool-sub">Gerenciamento Local e NAT</span></div>
-      </button>
+      <div class="cat-title">Roteamento (Camada 3)</div>
+      <button class="tool-btn" onclick="setMode('add', 'router-tplink')"><span style="font-size:18px">🌐</span><div><b>TP-Link TL-WR</b><span class="tool-sub">Interface Clássica</span></div></button>
+      <button class="tool-btn" onclick="setMode('add', 'router-intelbras')"><span style="font-size:18px">📶</span><div><b>Intelbras IWR</b><span class="tool-sub">Interface Moderna</span></div></button>
+      <button class="tool-btn" onclick="setMode('add', 'router-isp')"><span style="font-size:18px">🏢</span><div><b>Modem Provedor</b><span class="tool-sub">Interface Operadora</span></div></button>
 
       <div class="cat-title">Vídeo Segurança (CFTV)</div>
-      <button class="tool-btn" onclick="setMode('add', 'nvr')">
-        <span style="font-size:18px">📼</span><div><b>NVR / DVR</b><span class="tool-sub">Gravador de Vídeo Central</span></div>
-      </button>
-      <button class="tool-btn" onclick="setMode('add', 'camera')">
-        <span style="font-size:18px">📷</span><div><b>Câmera IP</b><span class="tool-sub">Monitoramento de Vídeo</span></div>
-      </button>
-      <button class="tool-btn" onclick="setMode('add', 'switch')">
-        <span style="font-size:18px">🔀</span><div><b>Switch PoE</b><span class="tool-sub">Concentrador e Alimentação</span></div>
-      </button>
+      <button class="tool-btn" onclick="setMode('add', 'nvr')"><span style="font-size:18px">📼</span><div><b>NVR / DVR</b><span class="tool-sub">Gravador Central (IP)</span></div></button>
+      <button class="tool-btn" onclick="setMode('add', 'camera')"><span style="font-size:18px">📷</span><div><b>Câmera IP PoE</b><span class="tool-sub">Consumo: 7W</span></div></button>
+      <button class="tool-btn" onclick="setMode('add', 'switch')"><span style="font-size:18px">🔀</span><div><b>Switch PoE (60W)</b><span class="tool-sub">Concentrador e Fonte</span></div></button>
 
-      <div class="cat-title">Controle de Acesso & Alarme</div>
-      <button class="tool-btn" onclick="setMode('add', 'access_ctrl')">
-        <span style="font-size:18px">🎛️</span><div><b>Controladora IP</b><span class="tool-sub">Cérebro do Controle de Acesso</span></div>
-      </button>
-      <button class="tool-btn" onclick="setMode('add', 'turnstile')">
-        <span style="font-size:18px">🚪</span><div><b>Catraca IP / Facial</b><span class="tool-sub">Controle Físico de Pedestres</span></div>
-      </button>
-      <button class="tool-btn" onclick="setMode('add', 'barrier')">
-        <span style="font-size:18px">🚧</span><div><b>Cancela Veicular LPR</b><span class="tool-sub">Controle de Veículos e Placas</span></div>
-      </button>
-      <button class="tool-btn" onclick="setMode('add', 'alarm')">
-        <span style="font-size:18px">🚨</span><div><b>Central de Alarme IP</b><span class="tool-sub">Painel de Intrusão Monitorado</span></div>
-      </button>
+      <div class="cat-title">Acesso & Automação</div>
+      <button class="tool-btn" onclick="setMode('add', 'access_ctrl')"><span style="font-size:18px">🎛️</span><div><b>Controladora IP</b><span class="tool-sub">Consumo PoE: 12W</span></div></button>
+      <button class="tool-btn" onclick="setMode('add', 'turnstile')"><span style="font-size:18px">🚪</span><div><b>Catraca IP</b><span class="tool-sub">Fonte Local 12V</span></div></button>
+      <button class="tool-btn" onclick="setMode('add', 'barrier')"><span style="font-size:18px">🚧</span><div><b>Cancela LPR</b><span class="tool-sub">Fonte Local 220V</span></div></button>
+      <button class="tool-btn" onclick="setMode('add', 'alarm')"><span style="font-size:18px">🚨</span><div><b>Central Alarme IP</b><span class="tool-sub">Painel Monitorado</span></div></button>
 
-      <div class="cat-title">Camada Física (Cabeamento)</div>
-      <button class="tool-btn" onclick="setMode('cable', 'utp')" style="border-left: 3px solid #007acc;">
-        <span style="font-size:18px">🖧</span><div><b>Cabo UTP (Rede IP)</b><span class="tool-sub">Até 100m. Ideal para Câmeras.</span></div>
-      </button>
-      <button class="tool-btn" onclick="setMode('cable', 'fiber')" style="border-left: 3px solid #ffeb3b;">
-        <span style="font-size:18px">⚡</span><div><b>Fibra Óptica</b><span class="tool-sub">Até 2km. Requer conversores.</span></div>
-      </button>
-      <button class="tool-btn" onclick="setMode('cable', 'rs485')" style="border-left: 3px solid #9c27b0;">
-        <span style="font-size:18px">🔌</span><div><b>Cabo Serial (RS-485)</b><span class="tool-sub">Até 1200m. Apenas Dados/Acesso.</span></div>
-      </button>
+      <div class="cat-title">Cabeamento (Física)</div>
+      <button class="tool-btn" onclick="setMode('cable', 'utp')" style="border-left: 3px solid #007acc;"><span style="font-size:18px">🖧</span><div><b>Cabo UTP (Rede/PoE)</b><span class="tool-sub">Dados + Energia (Máx 100m)</span></div></button>
+      <button class="tool-btn" onclick="setMode('cable', 'fiber')" style="border-left: 3px solid #ffeb3b;"><span style="font-size:18px">⚡</span><div><b>Fibra Óptica</b><span class="tool-sub">Links Longos (Até 2km)</span></div></button>
+      <button class="tool-btn" onclick="setMode('cable', 'rs485')" style="border-left: 3px solid #9c27b0;"><span style="font-size:18px">🔌</span><div><b>Cabo RS-485</b><span class="tool-sub">Serial de Dados (Máx 1.2km)</span></div></button>
     </div>
   </div>
 
-  <div class="canvas-wrap" id="cw" tabindex="0">
-    <canvas id="netCanvas"></canvas>
-  </div>
+  <div class="canvas-wrap" id="cw" tabindex="0"><canvas id="netCanvas"></canvas></div>
 
   <div class="inspector">
-    <div class="panel-header">Inspetor Físico e Lógico</div>
+    <div class="panel-header">Propriedades do Elemento</div>
     <div class="panel-content" id="propPanel">
       <div style="text-align:center; color:#858585; font-size:12px; margin-top:40px;">Selecione um equipamento ou cabo no projeto para configurá-lo.</div>
     </div>
@@ -149,15 +163,15 @@
 
 <div class="bottom-panel">
   <div class="term-header">
-    <div style="font-size: 12px; font-weight: bold; color:#9ca3af; margin-right: 15px;">Terminal ICMP (Ping)</div>
+    <div style="font-size: 12px; font-weight: bold; color:#9ca3af; margin-right: 15px;">Terminal de Diagnóstico</div>
     <select id="pingSrc" style="background:#1e1e1e; color:#fff; border:1px solid #3e3e42; padding:6px; border-radius:4px; font-size:12px; width:150px;"></select>
-    <span style="color:#858585; font-size:12px;">➔ DISPARAR PARA ➔</span>
-    <input type="text" id="pingDstIp" placeholder="Ex: 192.168.1.120" style="background:#1e1e1e; color:#fff; border:1px solid #3e3e42; padding:6px 10px; border-radius:4px; font-size:12px; width:160px;">
+    <span style="color:#858585; font-size:12px; margin: 0 10px;">➔ DISPARAR PARA ➔</span>
+    <input type="text" id="pingDstIp" placeholder="Ex: 192.168.1.120" style="background:#1e1e1e; color:#fff; border:1px solid #3e3e42; padding:6px 10px; border-radius:4px; font-size:12px; width:160px; outline:none;">
     <button class="btn btn-green" onclick="startPingSequence()" id="btnPing">Executar Ping</button>
     <button class="btn" style="background:transparent; border:1px solid #555; color:#ccc; margin-left:auto; width:auto;" onclick="document.getElementById('terminal').innerHTML=''">Limpar</button>
   </div>
   <div class="term-content" id="terminal">
-    NetSec OS [Versão Ultimate v5]<br>Análise de Cabos (UTP/Fibra/Serial) e Protocolos ativos.<br>──────────────────────────────────────────<br>
+    NetSec OS [Motor V6 Ativo]<br>Atenuação física, Orçamento PoE e Tabela de Roteamento online.<br>──────────────────────────────────────────<br>
   </div>
 </div>
 
@@ -167,39 +181,41 @@
       <div class="browser-dots" style="display:flex; gap:6px;"><div onclick="closeRouterGUI()"></div><div></div><div></div></div>
       <div class="browser-url" id="browserUrl">http://192.168.1.1</div>
     </div>
-    <div class="browser-content" style="flex-direction: column;" id="osWrapper"></div>
+    <div class="os-wrapper" id="osWrapper"></div>
   </div>
 </div>
 
 <script>
-// --- MOTOR DE REDE E ESTADO ---
+// ==========================================
+// ESTADO E CONFIGURAÇÃO
+// ==========================================
 let mode = 'select', subMode = '';
 let devices = [], links = [];
-let selectedDevId = null, selectedLinkId = null;
-let draggingDevId = null, cabStartId = null;
+let selectedDevId = null, selectedLinkId = null, draggingDevId = null, cabStartId = null;
 
 const cam = { x: 0, y: 0, zoom: 1 };
-let isPanning = false, panStart = { x: 0, y: 0 }, mouseScreen = { x: 0, y: 0 }; 
+let isPanning = false, panStart = { x:0, y:0 }, mouseScreen = { x:0, y:0 }; 
 
 const DEVICE_CFG = {
-  // Camada 3
-  'router-isp': { icon: '🌐', name: 'Modem Provedor', isRouter: true, theme: 'isp', ip: '192.168.1.1', mask: '255.255.255.0' },
-  'router-intelbras': { icon: '📶', name: 'Roteador', isRouter: true, theme: 'intelbras', ip: '10.0.0.1', mask: '255.255.255.0' },
+  // Camada 3 (Roteadores)
+  'router-tplink': { icon: '🌐', name: 'TP-Link TL-WR', isRouter: true, theme: 'tplink', ip: '192.168.0.1' },
+  'router-intelbras': { icon: '📶', name: 'Intelbras IWR', isRouter: true, theme: 'intelbras', ip: '10.0.0.1' },
+  'router-isp': { icon: '🏢', name: 'Modem Provedor', isRouter: true, theme: 'isp', ip: '192.168.1.1' },
   // CFTV
-  'nvr': { icon: '📼', name: 'NVR / DVR', ip: '192.168.1.108', mask: '255.255.255.0', reqIp: true },
-  'camera': { icon: '📷', name: 'Câmera IP', ip: '192.168.1.120', mask: '255.255.255.0', reqIp: true },
-  'switch': { icon: '🔀', name: 'Switch PoE', isL2: true },
+  'nvr': { icon: '📼', name: 'NVR / DVR', ip: '192.168.1.108', reqIp: true },
+  'camera': { icon: '📷', name: 'Câmera IP PoE', ip: '192.168.1.120', reqIp: true, poeDraw: 7 }, // 7 Watts
+  'switch': { icon: '🔀', name: 'Switch PoE', isL2: true, poeBudget: 60 }, // 60 Watts totais
   // Acesso e Alarme
-  'access_ctrl': { icon: '🎛️', name: 'Controladora IP', ip: '192.168.1.200', mask: '255.255.255.0', reqIp: true },
-  'turnstile': { icon: '🚪', name: 'Catraca IP', ip: '192.168.1.201', mask: '255.255.255.0', reqIp: true },
-  'barrier': { icon: '🚧', name: 'Cancela LPR', ip: '192.168.1.202', mask: '255.255.255.0', reqIp: true },
-  'alarm': { icon: '🚨', name: 'Central Alarme', ip: '192.168.1.203', mask: '255.255.255.0', reqIp: true }
+  'access_ctrl': { icon: '🎛️', name: 'Controladora IP', ip: '192.168.1.200', reqIp: true, poeDraw: 12 }, // 12 Watts
+  'turnstile': { icon: '🚪', name: 'Catraca IP', ip: '192.168.1.201', reqIp: true }, // Fonte Local
+  'barrier': { icon: '🚧', name: 'Cancela LPR', ip: '192.168.1.202', reqIp: true }, // Fonte Local
+  'alarm': { icon: '🚨', name: 'Central Alarme', ip: '192.168.1.203', reqIp: true }
 };
 
 const CABLE_CFG = {
-  'utp': { name: 'Cabo UTP (Rede)', color: '#007acc', max: 100 },
-  'fiber': { name: 'Fibra Óptica', color: '#ffeb3b', max: 2000 },
-  'rs485': { name: 'Cabo Serial RS-485', color: '#9c27b0', max: 1200 }
+  'utp': { name: 'Cabo UTP', color: '#007acc', canPoe: true },
+  'fiber': { name: 'Fibra Óptica', color: '#ffeb3b', canPoe: false },
+  'rs485': { name: 'Cabo RS-485', color: '#9c27b0', canPoe: false }
 };
 
 const canvas = document.getElementById('netCanvas');
@@ -209,6 +225,9 @@ const wrap = document.getElementById('cw');
 function resize() { canvas.width = wrap.clientWidth; canvas.height = wrap.clientHeight; render(); }
 window.addEventListener('resize', resize); setTimeout(resize, 100);
 
+// ==========================================
+// FUNÇÕES MATEMÁTICAS E LÓGICAS
+// ==========================================
 function toWorld(x, y) { return { x: (x - cam.x) / cam.zoom, y: (y - cam.y) / cam.zoom }; }
 function distToSeg(px, py, x1, y1, x2, y2) {
   let A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
@@ -218,66 +237,93 @@ function distToSeg(px, py, x1, y1, x2, y2) {
   let yy = param < 0 ? y1 : (param > 1 ? y2 : y1 + param * D);
   return Math.sqrt((px - xx)**2 + (py - yy)**2);
 }
+const PX_PER_METER = 4;
+function calcMeters(p1, p2) { return Math.round(Math.hypot(p2.x - p1.x, p2.y - p1.y) / PX_PER_METER); }
 
 function setMode(m, sm='') {
   mode = m; subMode = sm; cabStartId = null; draggingDevId = null;
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
   if(event && event.currentTarget) event.currentTarget.classList.add('active');
-  wrap.style.cursor = mode === 'select' ? 'grab' : 'crosshair';
+  wrap.style.cursor = mode === 'select' ? 'grab' : (mode === 'delete' ? 'crosshair' : 'crosshair');
   render();
 }
 
-const PX_PER_METER = 4;
-function calcCableMeters(p1, p2) { return Math.round(Math.hypot(p2.x - p1.x, p2.y - p1.y) / PX_PER_METER); }
+// LÓGICA DE ORÇAMENTO POE
+function getSwitchPoE(switchId) {
+  let used = 0;
+  links.filter(l => (l.n1 === switchId || l.n2 === switchId) && l.type === 'utp').forEach(l => {
+    const otherDevId = l.n1 === switchId ? l.n2 : l.n1;
+    const otherDev = devices.find(d => d.id === otherDevId);
+    if(otherDev && DEVICE_CFG[otherDev.type].poeDraw) used += DEVICE_CFG[otherDev.type].poeDraw;
+  });
+  return used;
+}
+function checkDevicePower(devId) {
+  const d = devices.find(x => x.id === devId);
+  if(!d || !DEVICE_CFG[d.type].poeDraw) return true; // Se não precisa de PoE, tem energia local
+  
+  // Procura se está ligado a um switch PoE via UTP que não esteja sobrecarregado
+  const linkToSwitch = links.find(l => (l.n1 === devId || l.n2 === devId) && l.type === 'utp');
+  if(!linkToSwitch) return false; // Sem cabo = sem energia
+  
+  const switchId = linkToSwitch.n1 === devId ? linkToSwitch.n2 : linkToSwitch.n1;
+  const sw = devices.find(x => x.id === switchId);
+  if(!sw || sw.type !== 'switch') return false; // Ligado em algo que não é switch
+  
+  const budget = DEVICE_CFG['switch'].poeBudget;
+  const used = getSwitchPoE(sw.id);
+  return used <= budget; // Retorna true se a fonte do switch suportar
+}
 
+// LÓGICA DE SAÚDE DO CABO
 function getLinkHealth(link) {
   const d1 = devices.find(d => d.id === link.n1), d2 = devices.find(d => d.id === link.n2);
   const m = link.meters;
-  let status = 'ok', loss = 0, msg = 'Operação normal.';
+  let status = 'ok', loss = 0, msg = 'Operação ideal.';
   
+  // Checa Power (PoE desarmado derruba o link lógico)
+  const power1 = checkDevicePower(d1.id), power2 = checkDevicePower(d2.id);
+  if(!power1 || !power2) { return { status: 'crit', loss: 100, speed: 'Offline', msg: 'FALHA DE ENERGIA (PoE sobrecarregado ou ausente).' }; }
+
   if (link.type === 'utp') {
     const speed = Math.min(parseInt(d1.portSpeed||100), parseInt(d2.portSpeed||100));
-    if (m > 130) { status = 'crit'; loss = 100; msg = 'Atenuação crítica UTP. Sem link elétrico.'; }
+    if (m > 130) { status = 'crit'; loss = 100; msg = 'Atenuação crítica. Sinal elétrico dissipado.'; }
     else if (m > 95) {
-      if(speed === 1000) { status = 'crit'; loss = 85; msg = 'Gigabit falha acima de 95m (Norma EIA/TIA).'; }
-      else if(speed === 100) { status = 'warn'; loss = 30; msg = 'Atenuação detectada. Risco de perda de vídeo.'; }
-      else { status = 'warn'; loss = 5; msg = '10Mbps suporta a distância, porém com banda limitada.'; }
+      if(speed === 1000) { status = 'crit'; loss = 85; msg = 'Gigabit (1000M) não suporta UTP acima de 95m.'; }
+      else if(speed === 100) { status = 'warn'; loss = 30; msg = 'Distância alta (Fast Ethernet). Risco de perda.'; }
+      else { status = 'warn'; loss = 5; msg = '10Mbps compensa a distância. Banda limitada.'; }
     }
     return { status, loss, speed: speed+' Mbps', msg };
   } 
   else if (link.type === 'fiber') {
     if (m > 2000) { status = 'warn'; loss = 15; msg = 'Limite de fibra multimodo excedido.'; }
-    else { msg = 'Imune a interferência. Tráfego ideal.'; }
     return { status, loss, speed: 'Óptico', msg };
   }
   else if (link.type === 'rs485') {
-    // RS-485 não passa vídeo
     const isVideo = ['camera', 'nvr'].includes(d1.type) || ['camera', 'nvr'].includes(d2.type);
-    if (isVideo) { status = 'crit'; loss = 100; msg = 'ERRO DE PROJETO: Cabo Serial não suporta tráfego de Vídeo/IP.'; }
-    else if (m > 1200) { status = 'crit'; loss = 100; msg = 'Limite elétrico do barramento RS-485 excedido.'; }
-    else { msg = 'Conexão Serial de Dados (Baud Rate).'; }
-    return { status, loss, speed: 'Serial/Kbps', msg };
+    if (isVideo) { status = 'crit'; loss = 100; msg = 'ERRO DE PROJETO: Cabo Serial não trafega Vídeo/IP.'; }
+    else if (m > 1200) { status = 'crit'; loss = 100; msg = 'Limite do barramento RS-485 (1200m).'; }
+    return { status, loss, speed: 'Baud Rate', msg };
   }
 }
 
-// --- EVENTOS DE INTERAÇÃO ---
+// ==========================================
+// INTERAÇÃO DO MOUSE E TECLADO
+// ==========================================
 wrap.addEventListener('wheel', e => {
   e.preventDefault();
-  const zoomFactor = Math.exp((e.deltaY < 0 ? 1 : -1) * 0.1);
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-  cam.x = mx - (mx - cam.x) * zoomFactor; cam.y = my - (my - cam.y) * zoomFactor;
+  const zoomF = Math.exp((e.deltaY < 0 ? 1 : -1) * 0.1);
+  const r = canvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  cam.x = mx - (mx - cam.x) * zoomF; cam.y = my - (my - cam.y) * zoomF;
   cam.zoom = Math.max(0.15, Math.min(cam.zoom, 3)); render();
 });
 
 wrap.addEventListener('mousedown', e => {
-  const rect = canvas.getBoundingClientRect(); mouseScreen = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  if(e.button === 1 || (e.button === 0 && e.shiftKey)) {
-    isPanning = true; panStart = { x: mouseScreen.x - cam.x, y: mouseScreen.y - cam.y }; wrap.style.cursor = 'grabbing'; return;
-  }
+  const r = canvas.getBoundingClientRect(); mouseScreen = { x: e.clientX - r.left, y: e.clientY - r.top };
+  if(e.button === 1 || (e.button === 0 && e.shiftKey)) { isPanning = true; panStart = { x: mouseScreen.x - cam.x, y: mouseScreen.y - cam.y }; wrap.style.cursor = 'grabbing'; return; }
+  
   const wPt = toWorld(mouseScreen.x, mouseScreen.y);
   const clickedDev = devices.slice().reverse().find(d => Math.hypot(d.x - wPt.x, d.y - wPt.y) < 25);
-  
   let clickedLink = null;
   if(!clickedDev && (mode === 'select' || mode === 'delete')) {
     clickedLink = links.find(l => {
@@ -293,9 +339,9 @@ wrap.addEventListener('mousedown', e => {
   }
 
   if(mode === 'add') {
-    const cfg = DEVICE_CFG[subMode];
-    let dev = { id: Date.now(), type: subMode, name: `${cfg.name} ${devices.length+1}`, x: wPt.x, y: wPt.y, ip: cfg.ip || '', mask: cfg.mask || '', gateway: '', portSpeed: '100' };
-    if(cfg.isRouter) { dev.wanIp = `177.${Math.floor(Math.random()*200)}.${Math.floor(Math.random()*255)}.10`; dev.natRules = []; }
+    const c = DEVICE_CFG[subMode];
+    let dev = { id: Date.now(), type: subMode, name: `${c.name} ${devices.length+1}`, x: wPt.x, y: wPt.y, ip: c.ip || '', mask: c.mask || '255.255.255.0', gateway: '', portSpeed: '100' };
+    if(c.isRouter) { dev.wanIp = `177.${Math.floor(Math.random()*200)}.${Math.floor(Math.random()*255)}.10`; dev.natRules = []; }
     devices.push(dev); setMode('select'); updatePingDropdown(); updateInspector();
   } 
   else if(mode === 'select') {
@@ -308,7 +354,7 @@ wrap.addEventListener('mousedown', e => {
     if(clickedDev) {
       if(!cabStartId) cabStartId = clickedDev.id;
       else if(cabStartId !== clickedDev.id) {
-        links.push({ id: Date.now(), n1: cabStartId, n2: clickedDev.id, type: subMode, meters: calcCableMeters(devices.find(d=>d.id===cabStartId), clickedDev) });
+        links.push({ id: Date.now(), n1: cabStartId, n2: clickedDev.id, type: subMode, meters: calcMeters(devices.find(d=>d.id===cabStartId), clickedDev) });
         cabStartId = null; setMode('select'); updateInspector();
       }
     } else cabStartId = null;
@@ -317,7 +363,7 @@ wrap.addEventListener('mousedown', e => {
 });
 
 wrap.addEventListener('mousemove', e => {
-  const rect = canvas.getBoundingClientRect(); mouseScreen = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  const r = canvas.getBoundingClientRect(); mouseScreen = { x: e.clientX - r.left, y: e.clientY - r.top };
   const wPt = toWorld(mouseScreen.x, mouseScreen.y);
   if(isPanning) { cam.x = mouseScreen.x - panStart.x; cam.y = mouseScreen.y - panStart.y; render(); return; }
   if(draggingDevId && mode === 'select') { const d = devices.find(x => x.id === draggingDevId); if(d) { d.x = wPt.x; d.y = wPt.y; render(); } }
@@ -326,16 +372,17 @@ wrap.addEventListener('mousemove', e => {
 
 wrap.addEventListener('mouseup', () => { isPanning = false; draggingDevId = null; if(mode === 'select') wrap.style.cursor = 'grab'; });
 wrap.addEventListener('mouseleave', () => { isPanning = false; draggingDevId = null; });
+wrap.addEventListener('dblclick', e => {
+  if(mode !== 'select') return;
+  const r = canvas.getBoundingClientRect(), wPt = toWorld(e.clientX - r.left, e.clientY - r.top);
+  const d = devices.slice().reverse().find(d => Math.hypot(d.x - wPt.x, d.y - wPt.y) < 25);
+  if(d && DEVICE_CFG[d.type].isRouter) openRouterGUI(d.id);
+});
+
 window.addEventListener('keydown', e => {
   if ((e.key === 'Delete' || e.key === 'Backspace') && !['INPUT','SELECT'].includes(document.activeElement.tagName)) {
     if(selectedDevId) deleteItem('dev', selectedDevId); else if(selectedLinkId) deleteItem('link', selectedLinkId);
   }
-});
-wrap.addEventListener('dblclick', e => {
-  if(mode !== 'select') return;
-  const rect = canvas.getBoundingClientRect(); const wPt = toWorld(e.clientX - rect.left, e.clientY - rect.top);
-  const clickedDev = devices.slice().reverse().find(d => Math.hypot(d.x - wPt.x, d.y - wPt.y) < 25);
-  if(clickedDev && DEVICE_CFG[clickedDev.type].isRouter) openRouterGUI(clickedDev.id);
 });
 
 function deleteItem(type, id) {
@@ -344,23 +391,26 @@ function deleteItem(type, id) {
   updateInspector(); updatePingDropdown(); render();
 }
 
-// --- RENDER ---
+// ==========================================
+// RENDERIZAÇÃO GRÁFICA (CANVAS)
+// ==========================================
 function render() {
   ctx.save();
   ctx.fillStyle = '#1e1e1e'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   
-  const gridSize = 30 * cam.zoom, offsetX = cam.x % gridSize, offsetY = cam.y % gridSize;
+  const gSize = 30 * cam.zoom, ox = cam.x % gSize, oy = cam.y % gSize;
   ctx.beginPath();
-  for(let x = offsetX; x < canvas.width; x += gridSize) { ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); }
-  for(let y = offsetY; y < canvas.height; y += gridSize) { ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); }
+  for(let x = ox; x < canvas.width; x += gSize) { ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); }
+  for(let y = oy; y < canvas.height; y += gSize) { ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); }
   ctx.strokeStyle = '#2d2d30'; ctx.lineWidth = 1; ctx.stroke();
 
   ctx.translate(cam.x, cam.y); ctx.scale(cam.zoom, cam.zoom);
 
+  // Cabos (Fixos)
   links.forEach(l => {
     const d1 = devices.find(d => d.id === l.n1), d2 = devices.find(d => d.id === l.n2);
     if(!d1 || !d2) return;
-    l.meters = calcCableMeters(d1, d2); 
+    l.meters = calcMeters(d1, d2); 
     const h = getLinkHealth(l);
     const isSel = l.id === selectedLinkId;
     
@@ -374,23 +424,43 @@ function render() {
     drawLabel((d1.x+d2.x)/2, (d1.y+d2.y)/2, `${l.meters}m`, isSel ? '#000' : (h.status==='crit'?'#f44336':'#d4d4d4'), isSel ? '#fff' : '#252526');
   });
 
+  // Cabo Dinâmico
   if(mode === 'cable' && cabStartId) {
     const d1 = devices.find(d => d.id === cabStartId), mWorld = toWorld(mouseScreen.x, mouseScreen.y);
-    const m = calcCableMeters(d1, mWorld);
+    const m = calcMeters(d1, mWorld);
     ctx.beginPath(); ctx.moveTo(d1.x, d1.y); ctx.lineTo(mWorld.x, mWorld.y);
     ctx.lineWidth = 2; ctx.setLineDash([5, 5]); ctx.strokeStyle = CABLE_CFG[subMode].color; ctx.stroke(); ctx.setLineDash([]);
     drawLabel(mWorld.x + 20, mWorld.y + 20, `${m}m (${CABLE_CFG[subMode].name})`, '#fff', '#333');
   }
 
+  // Equipamentos
   devices.forEach(d => {
     const isSel = d.id === selectedDevId;
+    const c = DEVICE_CFG[d.type];
+    
+    // Alerta de PoE (Switch)
+    let isPoEOverload = false;
+    let hasPower = checkDevicePower(d.id);
+    if(d.type === 'switch') {
+       if(getSwitchPoE(d.id) > c.poeBudget) isPoEOverload = true;
+    }
+
+    // Aura de Erro
+    if(isPoEOverload || !hasPower) {
+      ctx.beginPath(); ctx.arc(d.x, d.y, 28, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(244, 67, 54, 0.2)'; ctx.fill();
+    }
+
     ctx.beginPath(); ctx.arc(d.x, d.y, 22, 0, Math.PI*2);
     ctx.fillStyle = isSel ? '#007acc' : '#252526'; ctx.fill();
-    ctx.strokeStyle = isSel ? '#fff' : '#3e3e42'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.strokeStyle = isSel ? '#fff' : (isPoEOverload || !hasPower ? '#f44336' : '#3e3e42'); 
+    ctx.lineWidth = isPoEOverload || !hasPower ? 3 : 2; ctx.stroke();
     
     ctx.font = '20px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(DEVICE_CFG[d.type].icon, d.x, d.y + 2);
-    drawLabel(d.x, d.y + 35, d.name, '#fff', 'transparent');
+    ctx.fillText(c.icon, d.x, d.y + 2);
+    
+    let lblColor = (isPoEOverload || !hasPower) ? '#f44336' : '#fff';
+    drawLabel(d.x, d.y + 35, d.name, lblColor, 'transparent');
     if(d.ip) drawLabel(d.x, d.y + 48, d.ip, '#81c784', 'transparent');
   });
 
@@ -403,7 +473,9 @@ function drawLabel(x, y, text, color, bg) {
   ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text, x, y);
 }
 
-// --- INSPETOR ---
+// ==========================================
+// INSPETOR LATERAL (PROPRIEDADES)
+// ==========================================
 function updateInspector() {
   const p = document.getElementById('propPanel');
   if(selectedDevId) {
@@ -411,30 +483,48 @@ function updateInspector() {
     let html = `<div style="font-size:13px; font-weight:bold; color:#fff; margin-bottom:15px;">${c.icon} ${c.name}</div>
       <div class="fg"><label>Nome / Etiqueta</label><input type="text" value="${d.name}" oninput="devices.find(x=>x.id===${d.id}).name=this.value; updatePingDropdown(); render();"></div>`;
     
+    // Status PoE
+    if(d.type === 'switch') {
+      const used = getSwitchPoE(d.id);
+      const pct = Math.min((used / c.poeBudget) * 100, 100);
+      const over = used > c.poeBudget;
+      html += `<div class="fg"><label>Orçamento PoE da Fonte (Máx ${c.poeBudget}W)</label>
+        <div class="poe-bar-bg">
+          <div class="poe-bar-fill ${over?'overload':''}" style="width:${pct}%"></div>
+          <div class="poe-txt">${used}W consumidos ${over?'(SOBRECARGA!)':''}</div>
+        </div></div>`;
+    } else if (c.poeDraw) {
+      const hasPower = checkDevicePower(d.id);
+      html += `<div class="fg"><label>Status de Energia (Requer ${c.poeDraw}W PoE)</label>
+        <div style="color:${hasPower?'#4caf50':'#f44336'}; font-size:11px; font-weight:bold;">${hasPower?'✅ Energizado via Switch':'❌ Desligado (Sem PoE livre ou Cabo)'}</div></div>`;
+    }
+
     if(c.reqIp || c.isRouter) {
-      html += `<div class="fg"><label>Velocidade da Porta (RJ45)</label><select onchange="devices.find(x=>x.id===${d.id}).portSpeed=this.value; render();">
+      html += `<div class="fg"><label>Velocidade da Porta</label><select onchange="devices.find(x=>x.id===${d.id}).portSpeed=this.value; render();">
           <option value="10" ${d.portSpeed==='10'?'selected':''}>10 Mbps (Longo Alcance)</option><option value="100" ${d.portSpeed==='100'?'selected':''}>100 Mbps (Fast Ethernet)</option><option value="1000" ${d.portSpeed==='1000'?'selected':''}>1000 Mbps (Gigabit)</option></select></div>
         <hr style="border-top:1px solid #3e3e42; margin:15px 0;">
         <div class="fg"><label>Endereço IP Local</label><input type="text" value="${d.ip}" oninput="devices.find(x=>x.id===${d.id}).ip=this.value; updatePingDropdown(); render();"></div>
         <div class="fg"><label>Máscara de Sub-rede</label><input type="text" value="${d.mask}" oninput="devices.find(x=>x.id===${d.id}).mask=this.value;"></div>
-        <div class="fg"><label>Gateway Padrão</label><input type="text" value="${d.gateway}" oninput="devices.find(x=>x.id===${d.id}).gateway=this.value;"></div>`;
+        <div class="fg"><label>Gateway Padrão</label><input type="text" value="${d.gateway}" placeholder="Ex: 192.168.1.1" oninput="devices.find(x=>x.id===${d.id}).gateway=this.value;"></div>`;
     }
     if(c.isRouter) {
-      html += `<div class="fg"><label>IP Público (Provedor)</label><input type="text" value="${d.wanIp}" disabled style="color:#4caf50;"></div>
+      html += `<div class="fg"><label>IP Público (Provedor)</label><input type="text" value="${d.wanIp}" disabled></div>
                <button class="btn btn-blue" style="margin-top:10px;" onclick="openRouterGUI(${d.id})">Configurar Roteador</button>`;
     }
-    html += `<button class="btn btn-red" style="margin-top:20px;" onclick="deleteItem('dev', ${d.id})">Excluir</button>`;
+    html += `<button class="btn btn-red" style="margin-top:20px;" onclick="deleteItem('dev', ${d.id})">Excluir Equipamento</button>`;
     p.innerHTML = html;
   } else if (selectedLinkId) {
     const l = links.find(x => x.id === selectedLinkId); const h = getLinkHealth(l);
     p.innerHTML = `<div style="font-size:13px; font-weight:bold; color:#fff; margin-bottom:15px;">🔗 ${CABLE_CFG[l.type].name}</div>
       <div class="fg"><label>Comprimento Físico</label><input type="text" value="${l.meters} metros" disabled></div>
-      <div class="health-box health-${h.status}"><b>Diagnóstico:</b><br>${h.msg}<br><div style="margin-top:6px; font-size:10px; opacity:0.8;">Taxa: ${h.speed}<br>Perda Estimada: ${h.loss}%</div></div>
+      <div class="health-box health-${h.status}"><b>Diagnóstico Físico:</b><br>${h.msg}<br><div style="margin-top:6px; font-size:10px; opacity:0.8;">Taxa do Link: ${h.speed}<br>Perda Estimada: ${h.loss}%</div></div>
       <button class="btn btn-red" style="margin-top:20px;" onclick="deleteItem('link', ${l.id})">Cortar Cabo</button>`;
   } else p.innerHTML = '<div style="text-align:center; color:#858585; font-size:12px; margin-top:40px;">Selecione um item.</div>';
 }
 
-// --- PING ---
+// ==========================================
+// PING TERMINAL
+// ==========================================
 function tLog(msg, type='') { const t = document.getElementById('terminal'); t.innerHTML += `<div class="${type}">${msg}</div>`; t.scrollTop = t.scrollHeight; }
 function updatePingDropdown() { document.getElementById('pingSrc').innerHTML = '<option value="">Selecionar Origem...</option>' + devices.filter(d=>d.ip).map(d=>`<option value="${d.id}">${d.name} (${d.ip})</option>`).join(''); }
 
@@ -462,6 +552,11 @@ async function startPingSequence() {
   tLog(''); tLog(`C:\\> ping ${dstIp}`, 'cmd'); tLog(`Disparando contra ${dstIp}...`);
   const sleep = ms => new Promise(r => setTimeout(r, ms)); await sleep(600);
 
+  if(src && (!checkDevicePower(src.id) || (dst && !checkDevicePower(dst.id)))) {
+    tLog('FALHA GERAL: Origem ou Destino estão sem energia elétrica (PoE Overload ou Off).', 'err');
+    pinging = false; document.getElementById('btnPing').disabled = false; return;
+  }
+
   const route = dst ? traceRoute(src.id, dst.id) : null;
   if(!dst || !route) {
     for(let i=0; i<4; i++) { tLog('Esgotado o tempo limite do pedido.', 'err'); await sleep(800); }
@@ -474,19 +569,21 @@ async function startPingSequence() {
     if(h.loss > maxLoss) maxLoss = h.loss; baseLat += (l.meters / 50);
   });
 
-  if(maxLoss > 0) tLog(`[AVISO FÍSICO] Falha no cabeamento. Risco de perda: ${maxLoss}%`, 'warn');
+  if(maxLoss > 0) tLog(`[AVISO L1] Atenuação de cabo. Risco de perda: ${maxLoss}%`, 'warn');
 
   let sent = 4, recv = 0;
   for(let i=0; i<4; i++) {
     if((Math.random() * 100) < maxLoss) { tLog('Esgotado o tempo limite do pedido.', 'err'); } 
-    else { let t = Math.max(1, Math.round(baseLat + Math.random()*2)); recv++; tLog(`Resposta de ${dstIp}: tempo=${t}ms`); }
+    else { let t = Math.max(1, Math.round(baseLat + Math.random()*2)); recv++; tLog(`Resposta de ${dstIp}: tempo=${t}ms TTL=64`); }
     await sleep(800);
   }
   tLog(`Pacotes: Enviados=4, Recebidos=${recv}, Perdidos=${sent-recv}`);
   pinging = false; document.getElementById('btnPing').disabled = false;
 }
 
-// --- SO ROTEADOR ---
+// ==========================================
+// ROTEADORES (GUI OS COM TEMAS CSS RESTAURADOS)
+// ==========================================
 let osDevId = null, osTab = 'wan';
 function openRouterGUI(id) { osDevId = id; document.getElementById('routerModal').style.display = 'flex'; renderOS(DEVICE_CFG[devices.find(x => x.id === id).type].theme, 'wan'); }
 function closeRouterGUI() { document.getElementById('routerModal').style.display = 'none'; osDevId = null; }
@@ -495,20 +592,74 @@ function renderOS(theme, tab) {
   const d = devices.find(x => x.id === osDevId);
   const wrap = document.getElementById('osWrapper');
   let cHTML = '';
+
   if(tab === 'wan') {
-    cHTML = `<h2>WAN (Internet)</h2><br><div class="fg"><label>IP Público:</label><input type="text" value="${d.wanIp}" disabled></div>`;
+    cHTML = `<h2 style="margin-bottom:20px;">Configuração WAN</h2>
+      <div class="os-form-group"><label>Tipo de Conexão:</label><select><option>PPPoE</option><option>IP Dinâmico</option></select></div>
+      <div class="os-form-group"><label>IP Público:</label><input type="text" value="${d.wanIp}" disabled></div>
+      <button class="os-btn" style="margin-top:20px;" onclick="alert('Salvo com sucesso!')">Salvar</button>`;
   } else if(tab === 'lan') {
-    cHTML = `<h2>LAN (Rede Local)</h2><br><div class="fg"><label>IP do Roteador:</label><input type="text" id="osLanIp" value="${d.ip}"></div><button class="btn btn-blue" onclick="saveOSLan()">Salvar</button>`;
+    cHTML = `<h2 style="margin-bottom:20px;">Configuração LAN</h2>
+      <div class="os-form-group"><label>IP do Roteador:</label><input type="text" id="osLanIp" value="${d.ip}"></div>
+      <div class="os-form-group"><label>Máscara Sub-rede:</label><input type="text" value="${d.mask}"></div>
+      <button class="os-btn" style="margin-top:20px;" onclick="saveOSLan()">Salvar e Aplicar</button>`;
   } else if(tab === 'nat') {
-    let trs = d.natRules.map((r, i) => `<tr><td>${r.ext}</td><td>${r.ip}</td><td>${r.int}</td><td><button onclick="delNat(${i})">X</button></td></tr>`).join('');
-    cHTML = `<h2>Redirecionamento de Portas (NAT)</h2><br><div style="display:flex; gap:10px;"><input type="text" id="natIp" placeholder="IP Destino"><input type="text" id="natExt" placeholder="P. Externa"><input type="text" id="natInt" placeholder="P. Interna"><button class="btn btn-blue" onclick="addNat()">Add</button></div><br><table width="100%" border="1" cellspacing="0" cellpadding="5"><tr><th>P. Ext</th><th>IP</th><th>P. Int</th><th>Ação</th></tr>${trs}</table>`;
+    let trs = d.natRules.map((r, i) => `<tr><td>${r.ext}</td><td>${r.ip}</td><td>${r.int}</td><td><button onclick="delNat(${i})" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">X</button></td></tr>`).join('');
+    cHTML = `<h2 style="margin-bottom:10px;">Port Forwarding (NAT)</h2>
+      <div style="background:#f9f9f9; padding:15px; border:1px solid #ddd; display:flex; gap:10px; align-items:flex-end; margin-bottom:20px;">
+        <div><label style="font-size:11px; font-weight:bold;">IP Destino Local</label><br><input type="text" id="natIp" placeholder="192.168.1.108" style="width:130px; padding:6px;"></div>
+        <div><label style="font-size:11px; font-weight:bold;">Porta Externa</label><br><input type="text" id="natExt" placeholder="8000" style="width:80px; padding:6px;"></div>
+        <div><label style="font-size:11px; font-weight:bold;">Porta Interna</label><br><input type="text" id="natInt" placeholder="8000" style="width:80px; padding:6px;"></div>
+        <button class="os-btn" onclick="addNat()">Add</button>
+      </div>
+      <table class="os-table"><tr><th>Porta Ext.</th><th>IP Local</th><th>Porta Int.</th><th>Excluir</th></tr>${trs || '<tr><td colspan="4" style="text-align:center;">Sem regras.</td></tr>'}</table>`;
   }
 
-  wrap.innerHTML = `<div style="display:flex; height:100%;"><div style="width:200px; background:#f2f2f2; border-right:1px solid #ccc; padding:20px;"><div style="cursor:pointer; padding:10px; margin-bottom:5px; background:${tab==='wan'?'#ccc':''}" onclick="renderOS('${theme}','wan')">WAN</div><div style="cursor:pointer; padding:10px; margin-bottom:5px; background:${tab==='lan'?'#ccc':''}" onclick="renderOS('${theme}','lan')">LAN</div><div style="cursor:pointer; padding:10px; margin-bottom:5px; background:${tab==='nat'?'#ccc':''}" onclick="renderOS('${theme}','nat')">NAT</div></div><div style="flex:1; padding:30px;">${cHTML}</div></div>`;
+  // APLICAÇÃO DOS TEMAS CSS
+  if(theme === 'tplink') {
+    wrap.innerHTML = `
+      <div class="tplink-container">
+        <div class="tplink-header">TP-LINK <span style="font-size:14px; font-weight:normal;">TL-WR840N</span></div>
+        <div style="display:flex; flex:1;">
+          <div class="tplink-nav">
+            <div class="${tab==='wan'?'active':''}" onclick="renderOS('tplink','wan')">Rede -> WAN</div>
+            <div class="${tab==='lan'?'active':''}" onclick="renderOS('tplink','lan')">Rede -> LAN</div>
+            <div class="${tab==='nat'?'active':''}" onclick="renderOS('tplink','nat')">Redirecionamento -> Servidor Virtual</div>
+          </div>
+          <div class="tplink-content">${cHTML}</div>
+        </div>
+      </div>`;
+  } else if(theme === 'intelbras') {
+    wrap.innerHTML = `
+      <div class="intelbras-container">
+        <div class="intelbras-header"><div class="intelbras-logo">intelbras</div><div style="color:#7f8c8d; font-size:14px;">Modo: Roteador</div></div>
+        <div style="display:flex; flex:1;">
+          <div class="intelbras-nav">
+            <div class="${tab==='wan'?'active':''}" onclick="renderOS('intelbras','wan')">🌐 Configurações WAN</div>
+            <div class="${tab==='lan'?'active':''}" onclick="renderOS('intelbras','lan')">🖥️ Configurações LAN</div>
+            <div class="${tab==='nat'?'active':''}" onclick="renderOS('intelbras','nat')">🛡️ Redirecionamento de Portas</div>
+          </div>
+          <div style="flex:1; padding:20px; overflow-y:auto;"><div class="intelbras-content">${cHTML}</div></div>
+        </div>
+      </div>`;
+  } else if(theme === 'isp') {
+    wrap.innerHTML = `
+      <div class="isp-container">
+        <div class="isp-header"><span>MODEM PROVEDOR / HOME GATEWAY</span></div>
+        <div class="isp-nav-top">
+          <div class="${tab==='wan'?'active':''}" onclick="renderOS('isp','wan')">Status Conexão WAN</div>
+          <div class="${tab==='lan'?'active':''}" onclick="renderOS('isp','lan')">Rede Doméstica (LAN)</div>
+          <div class="${tab==='nat'?'active':''}" onclick="renderOS('isp','nat')">Aplicações e Jogos (NAT)</div>
+        </div>
+        <div class="isp-content">${cHTML}</div>
+      </div>`;
+  }
 }
-function saveOSLan() { devices.find(x => x.id === osDevId).ip = document.getElementById('osLanIp').value; alert('Salvo!'); updatePingDropdown(); render(); }
+
+function saveOSLan() { devices.find(x => x.id === osDevId).ip = document.getElementById('osLanIp').value; alert('Salvo! Simulando reinício.'); updatePingDropdown(); updateInspector(); render(); }
 function addNat() { devices.find(x => x.id === osDevId).natRules.push({ ip: document.getElementById('natIp').value, ext: document.getElementById('natExt').value, int: document.getElementById('natInt').value }); renderOS(DEVICE_CFG[devices.find(x => x.id === osDevId).type].theme, 'nat'); }
 function delNat(i) { devices.find(x => x.id === osDevId).natRules.splice(i, 1); renderOS(DEVICE_CFG[devices.find(x => x.id === osDevId).type].theme, 'nat'); }
+
 </script>
 </body>
 </html>
