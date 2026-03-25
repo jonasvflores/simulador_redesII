@@ -3,494 +3,532 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NetSec Tracer PRO - Física e Roteamento</title>
+<title>NetSec Tracer PRO v4.0 - Simulador de Campo</title>
 <style>
-  :root { --bg: #0b1120; --panel: #111827; --border: #1f2937; --text: #e5e7eb; --accent: #3b82f6; --error: #ef4444; --warn: #f59e0b; --success: #10b981; }
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+  :root { --bg: #1e1e1e; --panel: #2d2d30; --border: #3e3e42; --text: #d4d4d4; --accent: #007acc; --error: #f44336; --warn: #ff9800; --success: #4caf50; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
   body { background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
   
-  header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; }
-  .logo { font-size: 16px; font-weight: 700; color: #fff; }
+  /* Header & Toolbars */
+  header { background: #1e1e1e; border-bottom: 1px solid var(--border); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+  .logo { font-size: 18px; font-weight: 800; color: #fff; letter-spacing: 1px;}
   .logo span { color: var(--accent); }
+  .top-hints { font-size: 12px; color: #9cdcfe; background: #252526; padding: 6px 12px; border-radius: 4px; border: 1px solid #333;}
   
-  .workspace { display: flex; flex: 1; overflow: hidden; }
-  .sidebar, .inspector { width: 300px; background: var(--panel); display: flex; flex-direction: column; z-index: 10; }
-  .sidebar { border-right: 1px solid var(--border); }
-  .inspector { border-left: 1px solid var(--border); }
+  .workspace { display: flex; flex: 1; overflow: hidden; position: relative; }
   
-  .panel-header { padding: 12px 16px; background: #1f2937; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #9ca3af; border-bottom: 1px solid var(--border); }
-  .panel-content { padding: 16px; overflow-y: auto; flex: 1; }
+  /* Sidebar Palette */
+  .palette { width: 260px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; }
+  .panel-header { background: #252526; padding: 10px 15px; font-size: 11px; font-weight: bold; text-transform: uppercase; color: #858585; border-bottom: 1px solid var(--border); }
+  .panel-content { padding: 10px; overflow-y: auto; flex: 1; }
   
-  .tool-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; background: transparent; border: 1px solid transparent; color: var(--text); border-radius: 6px; cursor: pointer; text-align: left; transition: 0.2s; margin-bottom: 4px; }
-  .tool-btn:hover { background: #1f2937; }
-  .tool-btn.active { background: rgba(59, 130, 246, 0.1); border-color: var(--accent); color: var(--accent); }
+  .tool-btn { width: 100%; padding: 10px; background: #333337; border: 1px solid transparent; color: #ccc; border-radius: 4px; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; font-size: 13px; transition: 0.2s; }
+  .tool-btn:hover { background: #3f3f46; color: #fff; }
+  .tool-btn.active { background: rgba(0, 122, 204, 0.2); border-color: var(--accent); color: #fff; }
+  .tool-sub { font-size: 10px; color: #858585; display: block; margin-top: 2px; }
   
-  .fg { margin-bottom: 12px; }
-  .fg label { display: block; font-size: 11px; color: #9ca3af; margin-bottom: 4px; font-weight: 600; }
-  .fg input, .fg select { width: 100%; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: #fff; font-size: 13px; outline: none; transition: 0.2s; }
-  .fg input:focus, .fg select:focus { border-color: var(--accent); }
-  
-  .canvas-container { flex: 1; position: relative; background: #0f172a; background-image: radial-gradient(#1e293b 1px, transparent 1px); background-size: 20px 20px; cursor: crosshair; }
+  /* Canvas Area */
+  .canvas-wrap { flex: 1; position: relative; background-color: #1e1e1e; overflow: hidden; cursor: grab;}
+  .canvas-wrap:active { cursor: grabbing; }
   canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
   
-  .bottom-panel { height: 220px; background: #030712; border-top: 1px solid var(--border); display: flex; flex-direction: column; }
-  .term-header { padding: 10px 16px; background: #111827; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; }
-  .term-content { flex: 1; padding: 12px 16px; font-family: 'Courier New', monospace; font-size: 13px; color: #10b981; overflow-y: auto; line-height: 1.5; }
-  .term-content .err { color: var(--error); }
-  .term-content .warn { color: var(--warn); }
-  .term-content .cmd { color: #fff; font-weight: bold; }
+  /* Modal OS Router (Browser Window Fake) */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(3px); }
+  .browser-window { width: 900px; height: 600px; background: #fff; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 1px solid #555; }
+  .browser-header { background: #e0e0e0; padding: 10px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid #ccc; }
+  .browser-dots div { width: 12px; height: 12px; border-radius: 50%; background: #ff5f56; cursor: pointer; }
+  .browser-dots div:nth-child(2) { background: #ffbd2e; }
+  .browser-dots div:nth-child(3) { background: #27c93f; }
+  .browser-url { flex: 1; background: #fff; padding: 4px 10px; border-radius: 20px; font-size: 12px; color: #333; border: 1px solid #ccc; font-family: monospace; }
+  .browser-content { flex: 1; display: flex; background: #f0f0f0; position: relative; }
   
-  .btn { padding: 8px 14px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; font-size: 12px; transition: 0.2s; }
-  .btn-blue { background: var(--accent); color: #fff; }
-  .btn-blue:hover { background: #2563eb; }
-  .btn-green { background: var(--success); color: #fff; }
-  .btn-gray { background: #374151; color: #fff; }
+  /* THEME: TP-LINK CLASSIC */
+  .tplink-ui { flex: 1; display: flex; flex-direction: column; background: #fff; color: #333; }
+  .tplink-header { background: #0099cc; color: #fff; padding: 15px 20px; font-size: 24px; font-weight: bold; font-family: Arial, sans-serif; display: flex; justify-content: space-between; align-items: flex-end;}
+  .tplink-header span { font-size: 14px; font-weight: normal; }
+  .tplink-body { display: flex; flex: 1; }
+  .tplink-nav { width: 220px; background: #f2f2f2; border-right: 1px solid #ccc; padding: 10px; }
+  .tplink-nav ul { list-style: none; }
+  .tplink-nav li { padding: 8px 10px; cursor: pointer; color: #006699; font-size: 13px; border-bottom: 1px solid #e0e0e0; font-weight: bold; }
+  .tplink-nav li:hover { background: #e0e0e0; }
+  .tplink-nav li.active { background: #0099cc; color: #fff; }
+  .tplink-content { flex: 1; padding: 25px; font-family: Arial, sans-serif; overflow-y: auto;}
+  .tplink-title { color: #006699; font-size: 18px; border-bottom: 1px solid #0099cc; padding-bottom: 5px; margin-bottom: 20px; font-weight: bold;}
   
-  .health-box { margin-top: 15px; padding: 12px; border-radius: 6px; font-size: 12px; line-height: 1.4; border: 1px solid transparent; }
-  .health-ok { background: rgba(16, 185, 129, 0.1); border-color: #10b981; color: #34d399; }
-  .health-warn { background: rgba(245, 158, 11, 0.1); border-color: #f59e0b; color: #fbbf24; }
-  .health-crit { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; color: #fca5a5; }
+  /* THEME: INTELBRAS */
+  .intelbras-ui { flex: 1; display: flex; flex-direction: column; background: #f4f5f7; color: #333; }
+  .intelbras-header { background: #fff; border-bottom: 2px solid #00a859; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; }
+  .intelbras-logo { color: #00a859; font-size: 24px; font-weight: 900; letter-spacing: -1px; }
+  .intelbras-body { display: flex; flex: 1; }
+  .intelbras-nav { width: 250px; background: #2c3e50; padding: 20px 0; }
+  .intelbras-nav div { padding: 12px 30px; color: #ecf0f1; cursor: pointer; font-size: 14px; border-left: 4px solid transparent; }
+  .intelbras-nav div:hover { background: #34495e; }
+  .intelbras-nav div.active { background: #00a859; border-left-color: #fff; font-weight: bold; }
+  .intelbras-content { flex: 1; padding: 30px; background: #fff; margin: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow-y: auto;}
+  
+  /* THEME: ISP (Provedor Genérico) */
+  .isp-ui { flex: 1; display: flex; flex-direction: column; background: #fff; color: #333; }
+  .isp-header { background: #d32f2f; color: #fff; padding: 20px; display: flex; justify-content: space-between; align-items: center;}
+  .isp-nav-top { background: #333; display: flex; padding: 0 20px; }
+  .isp-nav-top div { padding: 12px 20px; color: #fff; cursor: pointer; font-size: 14px; }
+  .isp-nav-top div.active { background: #f44336; }
+  .isp-content { flex: 1; padding: 30px; background: #fafafa; overflow-y: auto;}
+
+  /* Form Elements within OS */
+  .os-form-group { display: flex; margin-bottom: 15px; align-items: center; }
+  .os-form-group label { width: 160px; font-weight: bold; font-size: 13px; color: #555; }
+  .os-form-group input, .os-form-group select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; width: 200px; }
+  .os-btn { padding: 8px 20px; background: var(--accent); color: #fff; border: none; border-radius: 3px; cursor: pointer; font-weight: bold; }
+  .os-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  .os-table th, .os-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  .os-table th { background: #f2f2f2; }
+
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">📡 <span>NetSec</span> Tracer PRO</div>
-  <div style="font-size: 12px; color: #9ca3af;">Simulação Física & Lógica Ativa</div>
+  <div class="logo">📡 <span>NetSec</span> Tracer v4.0</div>
+  <div class="top-hints">
+    <b>Dica:</b> 🖱️ Scroll para Zoom | 🖐️ Segure Espaço + Clique para mover a tela | 🖱️ Duplo clique no roteador para configurar
+  </div>
 </header>
 
 <div class="workspace">
-  <div class="sidebar">
-    <div class="panel-header">Topologia e Equipamentos</div>
+  <div class="palette">
+    <div class="panel-header">Ferramentas Base</div>
     <div class="panel-content">
-      <button class="tool-btn active" onclick="setMode('select')" id="btn-select">👆 Selecionar (Nós e Cabos)</button>
-      <hr style="border-top:1px solid #1f2937; margin: 15px 0;">
-      <div style="font-size:10px; color:#6b7280; margin-bottom:8px; text-transform:uppercase;">Equipamentos</div>
-      <button class="tool-btn" onclick="setMode('add', 'router')">🌐 Roteador (Internet)</button>
-      <button class="tool-btn" onclick="setMode('add', 'nvr')">📼 DVR / NVR</button>
-      <button class="tool-btn" onclick="setMode('add', 'camera')">📷 Câmera IP</button>
-      <button class="tool-btn" onclick="setMode('add', 'switch')">🔀 Switch de Rede</button>
-      <hr style="border-top:1px solid #1f2937; margin: 15px 0;">
-      <div style="font-size:10px; color:#6b7280; margin-bottom:8px; text-transform:uppercase;">Camada Física (Layer 1)</div>
-      <button class="tool-btn" onclick="setMode('cable', 'utp')">🖧 Cabo UTP (Cat5e/6)</button>
-      <button class="tool-btn" onclick="setMode('cable', 'fiber')">⚡ Fibra Óptica</button>
+      <button class="tool-btn active" onclick="setMode('select')">
+        <span style="font-size:20px">👆</span>
+        <div><b>Selecionar / Mover</b><span class="tool-sub">Edite ou mova equipamentos</span></div>
+      </button>
+
+      <div class="panel-header" style="padding-left:0; margin-top:15px;">Adicionar Roteador</div>
+      <button class="tool-btn" onclick="setMode('add', 'router-tplink')">
+        <span style="font-size:20px">🌐</span><div><b>Roteador TP-Link</b><span class="tool-sub">Interface Clássica</span></div>
+      </button>
+      <button class="tool-btn" onclick="setMode('add', 'router-intelbras')">
+        <span style="font-size:20px">🌐</span><div><b>Roteador Intelbras</b><span class="tool-sub">Interface IWR/Action</span></div>
+      </button>
+      <button class="tool-btn" onclick="setMode('add', 'router-isp')">
+        <span style="font-size:20px">🌐</span><div><b>Modem Provedor</b><span class="tool-sub">Interface Operadora</span></div>
+      </button>
+
+      <div class="panel-header" style="padding-left:0; margin-top:15px;">Equipamentos LAN</div>
+      <button class="tool-btn" onclick="setMode('add', 'nvr')">
+        <span style="font-size:20px">📼</span><div><b>DVR / NVR</b><span class="tool-sub">Gravador de Câmeras</span></div>
+      </button>
+      <button class="tool-btn" onclick="setMode('add', 'camera')">
+        <span style="font-size:20px">📷</span><div><b>Câmera IP</b><span class="tool-sub">Dispositivo final</span></div>
+      </button>
+      <button class="tool-btn" onclick="setMode('add', 'switch')">
+        <span style="font-size:20px">🔀</span><div><b>Switch PoE</b><span class="tool-sub">Concentrador de Rede</span></div>
+      </button>
+
+      <div class="panel-header" style="padding-left:0; margin-top:15px;">Cabeamento Físico</div>
+      <button class="tool-btn" onclick="setMode('cable', 'utp')" style="border-left: 4px solid #3b82f6;">
+        <span style="font-size:20px">🖧</span><div><b>Cabo de Rede (UTP)</b><span class="tool-sub">Atenuação real após 90m</span></div>
+      </button>
     </div>
   </div>
 
-  <div class="canvas-container" id="cw">
+  <div class="canvas-wrap" id="cw">
     <canvas id="netCanvas"></canvas>
-  </div>
-
-  <div class="inspector">
-    <div class="panel-header">Inspetor de Propriedades</div>
-    <div class="panel-content" id="propPanel">
-      <div style="text-align:center; color:#6b7280; font-size:12px; margin-top:40px;">
-        Selecione um equipamento ou <b>clique na linha de um cabo</b> no projeto.
-      </div>
-    </div>
   </div>
 </div>
 
-<div class="bottom-panel">
-  <div class="term-header">
-    <div style="font-size: 12px; font-weight: bold; color:#9ca3af; margin-right: 20px;">Prompt de Comando</div>
-    <select id="pingSrc" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:6px; border-radius:4px; font-size:12px; width:150px;"></select>
-    <span style="color:#6b7280;">PING ➔</span>
-    <input type="text" id="pingDstIp" placeholder="IP Destino (Ex: 192.168.1.10)" style="background:#1f2937; color:#fff; border:1px solid #374151; padding:6px 10px; border-radius:4px; font-size:12px; width:200px;">
-    <button class="btn btn-green" onclick="startPingSequence()" id="btnPing">Executar Ping</button>
-    <button class="btn btn-gray" onclick="document.getElementById('terminal').innerHTML=''" style="margin-left:auto;">Limpar</button>
-  </div>
-  <div class="term-content" id="terminal">
-    NetSec OS [Versão 3.0]<br>Pronto para diagnóstico ICMP.<br>──────────────────────────────────────────<br>
+<div class="modal-overlay" id="routerModal">
+  <div class="browser-window">
+    <div class="browser-header">
+      <div class="browser-dots" style="display:flex; gap:6px;">
+        <div onclick="closeRouterGUI()"></div><div></div><div></div>
+      </div>
+      <div class="browser-url" id="browserUrl">http://192.168.1.1</div>
+    </div>
+    <div class="browser-content" id="osContent">
+      </div>
   </div>
 </div>
 
 <script>
-// --- MODELOS DE DADOS ---
+// --- MOTOR DE REDE E ESTADO ---
 let mode = 'select', subMode = '';
 let devices = [], links = [];
-let selectedDevId = null, selectedLinkId = null, cabStartId = null;
+let draggingDevId = null, cabStartId = null;
 
-const DEVICE_TYPES = {
-  router: { label: 'Roteador', icon: '🌐', defIp: '192.168.1.1', defMask: '255.255.255.0', isRouter: true },
-  nvr: { label: 'DVR/NVR', icon: '📼', defIp: '192.168.1.108', defMask: '255.255.255.0' },
-  camera: { label: 'Câmera IP', icon: '📷', defIp: '192.168.1.120', defMask: '255.255.255.0' },
-  switch: { label: 'Switch', icon: '🔀', defIp: '', defMask: '', isLayer2: true }
+// MOTOR DE CÂMERA (ZOOM E PAN)
+const cam = { x: 0, y: 0, zoom: 1 };
+let isPanning = false;
+let panStart = { x: 0, y: 0 };
+let mouseScreen = { x: 0, y: 0 }; 
+
+const DEVICE_CFG = {
+  'router-tplink': { icon: '🌐', name: 'TP-Link TL-WR', isRouter: true, theme: 'tplink', ip: '192.168.0.1' },
+  'router-intelbras': { icon: '🌐', name: 'Intelbras IWR', isRouter: true, theme: 'intelbras', ip: '10.0.0.1' },
+  'router-isp': { icon: '🌐', name: 'Modem Operadora', isRouter: true, theme: 'isp', ip: '192.168.1.1' },
+  'nvr': { icon: '📼', name: 'DVR/NVR', ip: '192.168.1.108' },
+  'camera': { icon: '📷', name: 'Câmera IP', ip: '192.168.1.120' },
+  'switch': { icon: '🔀', name: 'Switch PoE', isL2: true }
 };
 
-const CABLE_TYPES = {
-  utp: { name: 'Cabo UTP', color: '#3b82f6', maxOpt: 90, maxLimit: 130 }, // Metros
-  fiber: { name: 'Fibra Óptica', color: '#f59e0b', maxOpt: 2000, maxLimit: 5000 }
-};
-
-// --- CONFIGURAÇÃO DO CANVAS ---
 const canvas = document.getElementById('netCanvas');
 const ctx = canvas.getContext('2d');
-function resize() { canvas.width = document.getElementById('cw').clientWidth; canvas.height = document.getElementById('cw').clientHeight; render(); }
+const wrap = document.getElementById('cw');
+
+function resize() { canvas.width = wrap.clientWidth; canvas.height = wrap.clientHeight; render(); }
 window.addEventListener('resize', resize); setTimeout(resize, 100);
 
-function setMode(newMode, newSubMode='') {
-  mode = newMode; subMode = newSubMode; cabStartId = null; 
-  document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+// Conversão de coordenadas Tela <-> Mundo
+function toWorld(x, y) { return { x: (x - cam.x) / cam.zoom, y: (y - cam.y) / cam.zoom }; }
+function toScreen(x, y) { return { x: x * cam.zoom + cam.x, y: y * cam.zoom + cam.y }; }
+
+function setMode(m, sm='') {
+  mode = m; subMode = sm; cabStartId = null; draggingDevId = null;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  if(event) event.currentTarget.classList.add('active');
+  wrap.style.cursor = mode === 'select' ? 'grab' : 'crosshair';
   render();
 }
 
-// Matemática para clique no cabo (Distância Ponto-Reta)
-function distToSegment(px, py, x1, y1, x2, y2) {
-  let A = px - x1, B = py - y1, C = x2 - x1, D = y2 - y1;
-  let dot = A * C + B * D;
-  let len_sq = C * C + D * D;
-  let param = -1;
-  if (len_sq != 0) param = dot / len_sq;
-  let xx, yy;
-  if (param < 0) { xx = x1; yy = y1; }
-  else if (param > 1) { xx = x2; yy = y2; }
-  else { xx = x1 + param * C; yy = y1 + param * D; }
-  let dx = px - xx, dy = py - yy;
-  return Math.sqrt(dx * dx + dy * dy);
+function generateWAN() { return `${Math.floor(Math.random()*150+50)}.${Math.floor(Math.random()*255)}.${Math.floor(Math.random()*255)}.10`; }
+
+// FÍSICA DO CABO (1 metro = ~4 pixels de desenho no mundo)
+const PX_PER_METER = 4;
+function calcCable(p1, p2) {
+  const distPx = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+  const meters = Math.round(distPx / PX_PER_METER);
+  let loss = 0;
+  if(meters > 90 && meters <= 130) loss = Math.min(100, Math.round((meters - 90) * 2.5));
+  else if(meters > 130) loss = 100;
+  return { meters, loss };
 }
 
-canvas.addEventListener('mousedown', e => {
-  const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+// --- EVENTOS DE MOUSE ---
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  const zoomIntensity = 0.1;
+  const wheel = e.deltaY < 0 ? 1 : -1;
+  const zoomFactor = Math.exp(wheel * zoomIntensity);
   
-  // Verifica se clicou num equipamento
-  let clickedDev = devices.slice().reverse().find(d => Math.hypot(d.x - mx, d.y - my) < 25);
-  // Verifica se clicou num cabo (se não clicou em equipamento)
-  let clickedLink = null;
-  if(!clickedDev && mode === 'select') {
-    clickedLink = links.find(l => {
-      const d1 = devices.find(d => d.id === l.n1), d2 = devices.find(d => d.id === l.n2);
-      return d1 && d2 && distToSegment(mx, my, d1.x, d1.y, d2.x, d2.y) < 8; // Raio de 8px para o clique
-    });
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+  
+  // Ajusta a translação para manter o mouse no mesmo ponto do mundo
+  cam.x = mouseX - (mouseX - cam.x) * zoomFactor;
+  cam.y = mouseY - (mouseY - cam.y) * zoomFactor;
+  cam.zoom *= zoomFactor;
+  cam.zoom = Math.max(0.2, Math.min(cam.zoom, 3)); // Limites de zoom
+  render();
+});
+
+wrap.addEventListener('mousedown', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseScreen = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  
+  // Pan (Arrastar tela com botão do meio ou segurando Espaço)
+  if(e.button === 1 || e.shiftKey) {
+    isPanning = true;
+    panStart = { x: mouseScreen.x - cam.x, y: mouseScreen.y - cam.y };
+    wrap.style.cursor = 'grabbing';
+    return;
   }
 
+  const worldPt = toWorld(mouseScreen.x, mouseScreen.y);
+  const clickedDev = devices.slice().reverse().find(d => Math.hypot(d.x - worldPt.x, d.y - worldPt.y) < 25);
+
   if(mode === 'add') {
-    const cfg = DEVICE_TYPES[subMode];
-    devices.push({ 
-      id: Date.now(), type: subMode, name: `${cfg.label} ${devices.length+1}`, 
-      x: mx, y: my, ip: cfg.defIp, mask: cfg.defMask, gateway: '', 
-      portSpeed: '100' // Default: Fast Ethernet (100Mbps)
-    });
-    setMode('select'); updatePingDropdown(); render();
+    const cfg = DEVICE_CFG[subMode];
+    let dev = { id: Date.now(), type: subMode, name: `${cfg.name} ${devices.length+1}`, x: worldPt.x, y: worldPt.y, ip: cfg.ip || '' };
+    if(cfg.isRouter) {
+      dev.wanIp = generateWAN();
+      dev.wanType = 'pppoe';
+      dev.dhcp = true;
+      dev.natRules = []; // Regras de redirecionamento de porta
+    }
+    devices.push(dev);
+    setMode('select');
   } 
-  else if (mode === 'select') {
-    selectedDevId = clickedDev ? clickedDev.id : null;
-    selectedLinkId = clickedLink ? clickedLink.id : null;
-    cabStartId = selectedDevId; // Para arrastar
-    updateInspector(); render();
-  } 
-  else if (mode === 'cable') {
+  else if(mode === 'select') {
+    if(clickedDev) draggingDevId = clickedDev.id;
+  }
+  else if(mode === 'cable') {
     if(clickedDev) {
       if(!cabStartId) cabStartId = clickedDev.id;
       else if(cabStartId !== clickedDev.id) {
-        // Cria o cabo
-        links.push({ id: Date.now(), n1: cabStartId, n2: clickedDev.id, type: subMode, distance: 30 }); // Default 30 metros
-        cabStartId = null; setMode('select'); render();
+        // Criar link real
+        const dist = calcCable(devices.find(d=>d.id===cabStartId), clickedDev);
+        links.push({ id: Date.now(), n1: cabStartId, n2: clickedDev.id, meters: dist.meters });
+        cabStartId = null; setMode('select');
       }
+    } else {
+      cabStartId = null; // Clicou no vazio, cancela puxada de cabo
     }
+  }
+  render();
+});
+
+wrap.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouseScreen = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  const worldPt = toWorld(mouseScreen.x, mouseScreen.y);
+
+  if(isPanning) {
+    cam.x = mouseScreen.x - panStart.x;
+    cam.y = mouseScreen.y - panStart.y;
+    render();
+    return;
+  }
+
+  if(draggingDevId && mode === 'select') {
+    const d = devices.find(x => x.id === draggingDevId);
+    if(d) { d.x = worldPt.x; d.y = worldPt.y; render(); }
+  }
+
+  if(mode === 'cable' && cabStartId) {
+    render(); // Redesenha para mostrar a linha acompanhando o mouse
   }
 });
 
-canvas.addEventListener('mousemove', e => {
-  if(mode==='select' && cabStartId && e.buttons===1) {
-    const d = devices.find(x => x.id===cabStartId);
-    const rect = canvas.getBoundingClientRect();
-    if(d) { d.x = e.clientX - rect.left; d.y = e.clientY - rect.top; render(); }
+wrap.addEventListener('mouseup', () => { isPanning = false; draggingDevId = null; wrap.style.cursor = mode === 'select' ? 'grab' : 'crosshair'; });
+wrap.addEventListener('mouseleave', () => { isPanning = false; draggingDevId = null; });
+
+// DUPLO CLIQUE (Abre GUI do roteador)
+wrap.addEventListener('dblclick', e => {
+  if(mode !== 'select') return;
+  const rect = canvas.getBoundingClientRect();
+  const wPt = toWorld(e.clientX - rect.left, e.clientY - rect.top);
+  const clickedDev = devices.slice().reverse().find(d => Math.hypot(d.x - wPt.x, d.y - wPt.y) < 25);
+  
+  if(clickedDev && DEVICE_CFG[clickedDev.type].isRouter) {
+    openRouterGUI(clickedDev.id);
   }
 });
 
-// --- MOTOR DE FÍSICA E ATENUAÇÃO ---
-function getLinkHealth(linkId) {
-  const link = links.find(l => l.id === linkId);
-  const d1 = devices.find(d => d.id === link.n1);
-  const d2 = devices.find(d => d.id === link.n2);
-  if(!link || !d1 || !d2) return null;
 
-  // Descobre a velocidade negociada (A menor velocidade entre as duas portas)
-  const speed = Math.min(parseInt(d1.portSpeed), parseInt(d2.portSpeed));
-  
-  let packetLoss = 0; // %
-  let status = 'ok';
-  let msg = 'Comunicação ideal.';
-
-  if (link.type === 'utp') {
-    if (link.distance > 130) {
-      status = 'crit'; packetLoss = 100; msg = 'Cabo rompido/sinal perdido. Distância excedeu o limite físico elétrico.';
-    } else if (link.distance > 90) {
-      // Regras de Velocidade vs Distância para UTP
-      if (speed === 1000) {
-        // Gigabit exige os 4 pares perfeitos. Cai rápido após 90m.
-        status = 'crit'; packetLoss = 80; msg = 'Atenuação severa. Gigabit (1000Mbps) não suporta UTP acima de 90m com estabilidade.';
-      } else if (speed === 100) {
-        status = 'warn'; packetLoss = 25; msg = 'Atenuação moderada. Risco de perda de pacotes e delay de rede (Fora da norma TIA/EIA).';
-      } else {
-        // 10Mbps aguenta mais (usado em CFTV analógico/IP longo)
-        status = 'warn'; packetLoss = 5; msg = 'Porta a 10Mbps compensa a distância. Risco aceitável de perda de pacotes.';
-      }
-    }
-  } else if (link.type === 'fiber') {
-    if(link.distance > 2000) { status = 'warn'; packetLoss = 10; msg = 'Limite teórico de fibra multimodo excedido.'; }
-  }
-
-  return { speed, status, packetLoss, msg };
-}
-
-// --- INSPETOR DE PROPRIEDADES ---
-function updateInspector() {
-  const panel = document.getElementById('propPanel');
-  
-  if(selectedDevId) {
-    const dev = devices.find(d => d.id === selectedDevId);
-    let html = `
-      <div style="font-size:14px; font-weight:bold; color:#fff; margin-bottom:15px; display:flex; align-items:center; gap:8px;">
-        ${DEVICE_TYPES[dev.type].icon} Configuração do Equipamento
-      </div>
-      <div class="fg"><label>Nome / Identificação</label><input type="text" value="${dev.name}" oninput="dev.name=this.value; updatePingDropdown(); render();"></div>
-      <div class="fg"><label>Velocidade da Porta de Rede</label>
-        <select onchange="dev.portSpeed=this.value; render();">
-          <option value="10" ${dev.portSpeed==='10'?'selected':''}>10 Mbps (Half/Full)</option>
-          <option value="100" ${dev.portSpeed==='100'?'selected':''}>100 Mbps (Fast Ethernet)</option>
-          <option value="1000" ${dev.portSpeed==='1000'?'selected':''}>1000 Mbps (Gigabit)</option>
-        </select>
-      </div>`;
-      
-    if(!DEVICE_TYPES[dev.type].isLayer2) {
-      html += `
-        <hr style="border-top:1px solid #374151; margin:15px 0;">
-        <div class="fg"><label>Endereço IP</label><input type="text" value="${dev.ip}" oninput="dev.ip=this.value; render();"></div>
-        <div class="fg"><label>Máscara de Sub-rede</label><input type="text" value="${dev.mask}" oninput="dev.mask=this.value;"></div>
-        <div class="fg"><label>Gateway Padrão</label><input type="text" value="${dev.gateway}" oninput="dev.gateway=this.value;"></div>`;
-    }
-    html += `<button class="btn btn-gray" style="width:100%; margin-top:10px; border:1px solid #ef4444; color:#ef4444;" onclick="deleteItem('dev', ${dev.id})">Excluir Equipamento</button>`;
-    panel.innerHTML = html;
-  } 
-  else if (selectedLinkId) {
-    const link = links.find(l => l.id === selectedLinkId);
-    const health = getLinkHealth(link.id);
-    const typeLabel = CABLE_TYPES[link.type].name;
-    
-    panel.innerHTML = `
-      <div style="font-size:14px; font-weight:bold; color:#fff; margin-bottom:15px;">🔗 Propriedades do Enlace</div>
-      <div class="fg"><label>Tipo de Mídia</label><input type="text" value="${typeLabel}" disabled style="background:#1f2937"></div>
-      <div class="fg"><label>Comprimento Lançado (Metros)</label>
-        <input type="number" value="${link.distance}" oninput="link.distance=parseInt(this.value)||0; updateInspector(); render();">
-      </div>
-      <div class="health-box health-${health.status}">
-        <b>Diagnóstico Físico:</b><br>${health.msg}<br>
-        <div style="margin-top:5px; font-size:11px; opacity:0.8;">
-          Negociação: ${health.speed} Mbps<br>
-          Perda Estimada: ${health.packetLoss}%
-        </div>
-      </div>
-      <button class="btn btn-gray" style="width:100%; margin-top:20px; border:1px solid #ef4444; color:#ef4444;" onclick="deleteItem('link', ${link.id})">Cortar Cabo</button>
-    `;
-  } else {
-    panel.innerHTML = '<div style="text-align:center; color:#6b7280; font-size:12px; margin-top:40px;">Selecione um equipamento ou linha de cabo.</div>';
-  }
-}
-
-function deleteItem(type, id) {
-  if(type==='dev') { devices = devices.filter(d=>d.id!==id); links = links.filter(l=>l.n1!==id && l.n2!==id); selectedDevId = null; }
-  if(type==='link') { links = links.filter(l=>l.id!==id); selectedLinkId = null; }
-  updateInspector(); updatePingDropdown(); render();
-}
-
-// --- RENDERIZAÇÃO DO CANVAS ---
+// --- RENDER ENGINE ---
 function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
   
-  // Desenhar Cabos
+  // Limpa fundo
+  ctx.fillStyle = '#1e1e1e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Grade de fundo (Acompanha Pan e Zoom)
+  const gridSize = 30 * cam.zoom;
+  const offsetX = cam.x % gridSize;
+  const offsetY = cam.y % gridSize;
+  ctx.beginPath();
+  for(let x = offsetX; x < canvas.width; x += gridSize) { ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); }
+  for(let y = offsetY; y < canvas.height; y += gridSize) { ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); }
+  ctx.strokeStyle = '#2d2d30'; ctx.lineWidth = 1; ctx.stroke();
+
+  // Aplica câmera para objetos do mundo
+  ctx.translate(cam.x, cam.y);
+  ctx.scale(cam.zoom, cam.zoom);
+
+  // Desenhar Cabos Fixos
   links.forEach(l => {
     const d1 = devices.find(d => d.id === l.n1), d2 = devices.find(d => d.id === l.n2);
     if(!d1 || !d2) return;
-    const isSel = l.id === selectedLinkId;
-    const health = getLinkHealth(l.id);
+    // Atualiza a distância ao vivo se os nós se moveram
+    const metrics = calcCable(d1, d2);
+    l.meters = metrics.meters; 
     
     ctx.beginPath(); ctx.moveTo(d1.x, d1.y); ctx.lineTo(d2.x, d2.y);
-    // Cor muda baseada na saúde do cabo (Camada 1)
-    if (health.status === 'crit') ctx.strokeStyle = '#ef4444';
-    else if (health.status === 'warn') ctx.strokeStyle = '#f59e0b';
-    else ctx.strokeStyle = isSel ? '#fff' : CABLE_TYPES[l.type].color;
+    ctx.lineWidth = 3;
+    if(metrics.loss >= 100) ctx.strokeStyle = '#f44336'; // Morto
+    else if(metrics.loss > 0) ctx.strokeStyle = '#ff9800'; // Atenuação
+    else ctx.strokeStyle = '#007acc'; // OK
+    ctx.stroke();
+
+    // Tag do Cabo
+    const midX = (d1.x + d2.x)/2, midY = (d1.y + d2.y)/2;
+    drawLabel(midX, midY, `${l.meters}m | Perda: ${metrics.loss}%`, metrics.loss > 0 ? '#ff9800' : '#d4d4d4', '#1e1e1e');
+  });
+
+  // Desenhar Cabo sendo puxado (Física Dinâmica)
+  if(mode === 'cable' && cabStartId) {
+    const d1 = devices.find(d => d.id === cabStartId);
+    const mWorld = toWorld(mouseScreen.x, mouseScreen.y);
+    const metrics = calcCable(d1, mWorld);
     
-    ctx.lineWidth = isSel ? 4 : 2;
-    if(health.status === 'crit') ctx.setLineDash([5, 5]); // Cabo falhando fica tracejado
-    else ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(d1.x, d1.y); ctx.lineTo(mWorld.x, mWorld.y);
+    ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = metrics.loss >= 100 ? '#f44336' : (metrics.loss > 0 ? '#ff9800' : '#007acc');
     ctx.stroke(); ctx.setLineDash([]);
     
-    // Rótulo da Metragem no meio do cabo
-    const midX = (d1.x + d2.x)/2, midY = (d1.y + d2.y)/2;
-    ctx.fillStyle = isSel ? '#fff' : '#1f2937';
-    ctx.fillRect(midX - 16, midY - 9, 32, 18);
-    ctx.fillStyle = isSel ? '#000' : (health.status==='crit' ? '#ef4444' : '#9ca3af');
-    ctx.font = '10px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(`${l.distance}m`, midX, midY);
-  });
+    // Mostra etiqueta grudada no mouse
+    drawLabel(mWorld.x + 15, mWorld.y + 15, `Distância: ${metrics.meters}m | Perda: ${metrics.loss}%`, metrics.loss > 0 ? '#ff9800' : '#fff', '#333');
+  }
 
-  // Desenhar Nós
+  // Desenhar Equipamentos
   devices.forEach(d => {
-    const isSel = d.id === selectedDevId;
-    ctx.beginPath(); ctx.arc(d.x, d.y, 20, 0, Math.PI*2);
-    ctx.fillStyle = isSel ? '#3b82f6' : '#1f2937'; ctx.fill();
-    ctx.strokeStyle = isSel ? '#fff' : '#374151'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(d.x, d.y, 22, 0, Math.PI*2);
+    ctx.fillStyle = '#252526'; ctx.fill();
+    ctx.strokeStyle = '#3e3e42'; ctx.lineWidth = 2; ctx.stroke();
     
-    ctx.font = '18px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(DEVICE_TYPES[d.type].icon, d.x, d.y + 2);
-    ctx.fillStyle = '#e5e7eb'; ctx.font = '11px sans-serif'; ctx.fillText(d.name, d.x, d.y + 32);
+    ctx.font = '20px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(DEVICE_CFG[d.type].icon, d.x, d.y + 2);
     
-    if(!DEVICE_TYPES[d.type].isLayer2 && d.ip) { 
-      ctx.fillStyle = '#9ca3af'; ctx.font = '10px monospace'; ctx.fillText(d.ip, d.x, d.y + 44); 
-    }
-    // Indicador de velocidade
-    ctx.fillStyle = '#3b82f6'; ctx.font = '9px sans-serif'; ctx.fillText(`${d.portSpeed}M`, d.x + 25, d.y - 15);
-  });
-}
-
-// --- LOGICA DE ROTEAMENTO (Simples IP to Long) ---
-function ipToLong(ip) { return ip.split('.').reduce((acc, oct) => (acc << 8) + parseInt(oct), 0) >>> 0; }
-function isSameSubnet(ip1, ip2, mask) { return (ipToLong(ip1) & ipToLong(mask)) === (ipToLong(ip2) & ipToLong(mask)); }
-
-// --- MOTOR DE PING (ASINCRONO E REALISTA) ---
-function tLog(msg, type='') { 
-  const term = document.getElementById('terminal');
-  term.innerHTML += `<div class="${type}">${msg}</div>`;
-  term.scrollTop = term.scrollHeight;
-}
-function updatePingDropdown() { 
-  document.getElementById('pingSrc').innerHTML = '<option value="">Sel. Origem...</option>' + 
-    devices.filter(d=>!DEVICE_TYPES[d.type].isLayer2 && d.ip).map(d=>`<option value="${d.id}">${d.name} (${d.ip})</option>`).join('');
-}
-
-// Algoritmo BFS para achar o caminho e calcular a pior perda de pacotes
-function traceRoute(srcId, dstId) {
-  let queue = [{ id: srcId, pathNodes: [srcId], pathLinks: [] }];
-  let visited = new Set([srcId]);
-
-  while(queue.length > 0) {
-    let curr = queue.shift();
-    if(curr.id === dstId) return curr; // Achou caminho físico
-
-    let edges = links.filter(l => l.n1 === curr.id || l.n2 === curr.id);
-    for(let edge of edges) {
-      let nextId = edge.n1 === curr.id ? edge.n2 : edge.n1;
-      if(!visited.has(nextId)) {
-        visited.add(nextId);
-        queue.push({ id: nextId, pathNodes: [...curr.pathNodes, nextId], pathLinks: [...curr.pathLinks, edge.id] });
-      }
-    }
-  }
-  return null;
-}
-
-let pingInProgress = false;
-
-async function startPingSequence() {
-  if(pingInProgress) return;
-  
-  const srcId = parseInt(document.getElementById('pingSrc').value);
-  const dstIp = document.getElementById('pingDstIp').value.trim();
-  
-  if(!srcId || !dstIp) { tLog('Erro: Defina a origem e o IP de destino.', 'err'); return; }
-  
-  const src = devices.find(d => d.id === srcId);
-  const dst = devices.find(d => d.ip === dstIp);
-  
-  document.getElementById('btnPing').disabled = true;
-  pingInProgress = true;
-  
-  tLog('');
-  tLog(`C:\\> ping ${dstIp}`, 'cmd');
-  tLog(`Disparando contra ${dstIp} com 32 bytes de dados:`);
-  
-  // Sleep simulado
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  await sleep(600);
-
-  // 1. Verificação Lógica (Subrede)
-  let logicalPass = false;
-  if(dst) {
-    if(isSameSubnet(src.ip, dst.ip, src.mask)) {
-      logicalPass = true;
-    } else if (src.gateway) {
-      // Se tem gateway configurado, checa se o roteador existe na rede
-      const router = devices.find(d => d.type === 'router' && d.ip === src.gateway);
-      if(router && dst.gateway) logicalPass = true; // Simplificação de roteamento
-    }
-  }
-
-  if(!logicalPass || !dst) {
-    for(let i=0; i<4; i++) {
-      tLog(`Resposta de ${src.gateway || src.ip}: Host de destino inacessível.`, 'err');
-      await sleep(1000);
-    }
-    tLog(`Estatísticas do Ping para ${dstIp}: Pacotes: Enviados = 4, Recebidos = 0, Perdidos = 4`);
-    finishPing(); return;
-  }
-
-  // 2. Verificação Física e Atenuação (Traçando o caminho)
-  const route = traceRoute(src.id, dst.id);
-  if(!route) {
-    for(let i=0; i<4; i++) { tLog('Esgotado o tempo limite do pedido.', 'err'); await sleep(1000); }
-    tLog(`Estatísticas do Ping para ${dstIp}: Pacotes: Enviados = 4, Recebidos = 0, Perdidos = 4`);
-    finishPing(); return;
-  }
-
-  // Calcula a saúde do caminho inteiro
-  let maxLoss = 0;
-  let baseLatency = 1; // ms mínimo
-  route.pathLinks.forEach(linkId => {
-    const h = getLinkHealth(linkId);
-    if(h.packetLoss > maxLoss) maxLoss = h.packetLoss;
-    // Aumenta latência sutilmente com base na distância e switches passados
-    const l = links.find(x=>x.id===linkId);
-    baseLatency += (l.distance / 50); 
+    drawLabel(d.x, d.y + 35, d.name, '#fff', 'transparent');
+    if(d.ip) drawLabel(d.x, d.y + 48, d.ip, '#007acc', 'transparent');
   });
 
-  if(maxLoss > 0) {
-    tLog(`[DIAGNÓSTICO L1] Atenuação detectada no trajeto. Chance de perda: ${maxLoss}%`, 'warn');
-  }
+  ctx.restore();
+}
 
-  // 3. Disparando os 4 ICMPs com Física
-  let sent = 4, recv = 0;
-  let times = [];
-
-  for(let i=0; i<4; i++) {
-    // Rolagem de "dados" para ver se o pacote se perde na atenuação do cabo
-    const isLost = (Math.random() * 100) < maxLoss;
-    
-    if(isLost) {
-      tLog('Esgotado o tempo limite do pedido.', 'err');
-    } else {
-      // Jitter na latência
-      let jitter = Math.random() * 3;
-      if(maxLoss > 10) jitter += Math.random() * 20; // Cabo ruim causa variações brutas
-      const t = Math.max(1, Math.round(baseLatency + jitter));
-      times.push(t);
-      tLog(`Resposta de ${dstIp}: bytes=32 tempo=${t < 1 ? '<1' : t}ms TTL=64`);
-      recv++;
-    }
-    await sleep(1000);
+function drawLabel(x, y, text, color, bg) {
+  ctx.font = '11px Arial';
+  const tw = ctx.measureText(text).width;
+  if(bg !== 'transparent') {
+    ctx.fillStyle = bg;
+    ctx.fillRect(x - tw/2 - 4, y - 8, tw + 8, 16);
+    ctx.strokeStyle = '#555'; ctx.strokeRect(x - tw/2 - 4, y - 8, tw + 8, 16);
   }
+  ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
 
-  // Estatísticas Finais
-  tLog('');
-  tLog(`Estatísticas do Ping para ${dstIp}:`);
-  tLog(`    Pacotes: Enviados = 4, Recebidos = ${recv}, Perdidos = ${sent - recv} (${Math.round(((sent-recv)/4)*100)}% de perda)`);
-  if(recv > 0) {
-    const min = Math.min(...times), max = Math.max(...times), avg = Math.round(times.reduce((a,b)=>a+b,0)/times.length);
-    tLog(`Aproximação de um tempo de ida e volta em milissegundos:`);
-    tLog(`    Mínimo = ${min}ms, Máximo = ${max}ms, Média = ${avg}ms`);
-  }
+
+// --- SISTEMA OPERACIONAL DO ROTEADOR (GUI SIMULATOR) ---
+let currentOsDevId = null;
+let currentOsTab = 'wan';
+
+function openRouterGUI(devId) {
+  const dev = devices.find(d => d.id === devId);
+  currentOsDevId = devId;
+  const cfg = DEVICE_CFG[dev.type];
   
-  finishPing();
+  document.getElementById('browserUrl').textContent = `http://${dev.ip}`;
+  document.getElementById('routerModal').style.display = 'flex';
+  renderOS(cfg.theme, 'wan');
 }
 
-function finishPing() {
-  document.getElementById('btnPing').disabled = false;
-  pingInProgress = false;
-  tLog('──────────────────────────────────────────');
+function closeRouterGUI() { document.getElementById('routerModal').style.display = 'none'; currentOsDevId = null; }
+
+function renderOS(theme, tab) {
+  currentOsTab = tab;
+  const dev = devices.find(d => d.id === currentOsDevId);
+  const container = document.getElementById('osContent');
+  
+  let html = '';
+  
+  // CONTEÚDO DAS ABAS (Igual para todos os temas, só muda a "casca")
+  let contentHtml = '';
+  if(tab === 'wan') {
+    contentHtml = `
+      <div style="font-size:18px; font-weight:bold; margin-bottom: 20px;">Configuração da Internet (WAN)</div>
+      <div class="os-form-group"><label>Tipo de Conexão WAN:</label>
+        <select><option ${dev.wanType==='pppoe'?'selected':''}>PPPoE (Recomendado)</option><option ${dev.wanType==='dhcp'?'selected':''}>IP Dinâmico</option></select>
+      </div>
+      <div class="os-form-group"><label>Endereço IP WAN:</label><input type="text" value="${dev.wanIp}" disabled style="background:#ddd; color:#333; font-weight:bold;"></div>
+      <div class="os-form-group"><label>Status:</label><span style="color:green; font-weight:bold;">Conectado</span></div>
+      <button class="os-btn" style="margin-top:20px" onclick="alert('Configurações WAN Salvas!')">Salvar</button>
+    `;
+  } else if(tab === 'lan') {
+    contentHtml = `
+      <div style="font-size:18px; font-weight:bold; margin-bottom: 20px;">Configuração da Rede Local (LAN)</div>
+      <div class="os-form-group"><label>Endereço IP (Roteador):</label><input type="text" id="osLanIp" value="${dev.ip}"></div>
+      <div class="os-form-group"><label>Máscara de Sub-rede:</label><input type="text" value="255.255.255.0"></div>
+      <div class="os-form-group"><label>Servidor DHCP:</label><select><option>Habilitar</option><option>Desabilitar</option></select></div>
+      <button class="os-btn" style="margin-top:20px" onclick="saveLanIp()">Salvar e Reiniciar</button>
+    `;
+  } else if(tab === 'nat') {
+    let trs = dev.natRules.map((r, i) => `<tr><td>${r.ext}</td><td>${r.ip}</td><td>${r.int}</td><td>TCP/UDP</td><td><button onclick="delNat(${i})" style="color:red; font-weight:bold; cursor:pointer; background:none; border:none;">X</button></td></tr>`).join('');
+    contentHtml = `
+      <div style="font-size:18px; font-weight:bold; margin-bottom: 10px;">Servidores Virtuais (Port Forwarding / NAT)</div>
+      <p style="font-size:12px; color:#666; margin-bottom:20px;">Permite que solicitações da internet acessem servidores locais (Ex: Câmeras e NVRs).</p>
+      
+      <div style="background:#e0e0e0; padding:15px; border-radius:4px; margin-bottom:20px; border:1px solid #ccc;">
+        <div style="display:flex; gap:10px; align-items:flex-end;">
+          <div><label style="font-size:11px; font-weight:bold;">IP Local (DVR/Câmera)</label><br><input type="text" id="natIp" placeholder="192.168.1.108" style="padding:5px; width:130px;"></div>
+          <div><label style="font-size:11px; font-weight:bold;">Porta Externa</label><br><input type="text" id="natExt" placeholder="8000" style="padding:5px; width:80px;"></div>
+          <div><label style="font-size:11px; font-weight:bold;">Porta Interna</label><br><input type="text" id="natInt" placeholder="8000" style="padding:5px; width:80px;"></div>
+          <button class="os-btn" onclick="addNat()">Adicionar Regra</button>
+        </div>
+      </div>
+      
+      <table class="os-table">
+        <tr><th>Porta Externa</th><th>Endereço IP Local</th><th>Porta Interna</th><th>Protocolo</th><th>Ação</th></tr>
+        ${trs || '<tr><td colspan="5" style="text-align:center; padding:15px; color:#888;">Nenhuma regra configurada. O acesso externo está bloqueado.</td></tr>'}
+      </table>
+    `;
+  }
+
+  // INJEÇÃO DO TEMA
+  if(theme === 'tplink') {
+    html = `
+      <div class="tplink-ui">
+        <div class="tplink-header">TP-LINK <span>TL-WR840N</span></div>
+        <div class="tplink-body">
+          <div class="tplink-nav">
+            <ul>
+              <li class="${tab==='wan'?'active':''}" onclick="renderOS('tplink', 'wan')">Rede -> WAN</li>
+              <li class="${tab==='lan'?'active':''}" onclick="renderOS('tplink', 'lan')">Rede -> LAN</li>
+              <li class="${tab==='nat'?'active':''}" onclick="renderOS('tplink', 'nat')">Encaminhamento -> Servidor Virtual</li>
+            </ul>
+          </div>
+          <div class="tplink-content"><div class="tplink-title">${tab.toUpperCase()}</div>${contentHtml}</div>
+        </div>
+      </div>
+    `;
+  } else if (theme === 'intelbras') {
+    html = `
+      <div class="intelbras-ui">
+        <div class="intelbras-header"><div class="intelbras-logo">intelbras</div><div>Modo: Roteador</div></div>
+        <div class="intelbras-body">
+          <div class="intelbras-nav">
+            <div class="${tab==='wan'?'active':''}" onclick="renderOS('intelbras', 'wan')">🌐 Configurações WAN</div>
+            <div class="${tab==='lan'?'active':''}" onclick="renderOS('intelbras', 'lan')">🖥️ Configurações LAN</div>
+            <div class="${tab==='nat'?'active':''}" onclick="renderOS('intelbras', 'nat')">🛡️ Redirecionamento (NAT)</div>
+          </div>
+          <div class="intelbras-content">${contentHtml}</div>
+        </div>
+      </div>
+    `;
+  } else if (theme === 'isp') {
+    html = `
+      <div class="isp-ui">
+        <div class="isp-header"><div><b>HOME GATEWAY</b> / PROVEDOR</div><div>Logout</div></div>
+        <div class="isp-nav-top">
+          <div class="${tab==='wan'?'active':''}" onclick="renderOS('isp', 'wan')">Status WAN</div>
+          <div class="${tab==='lan'?'active':''}" onclick="renderOS('isp', 'lan')">Rede Doméstica (LAN)</div>
+          <div class="${tab==='nat'?'active':''}" onclick="renderOS('isp', 'nat')">Aplicações (NAT/DMZ)</div>
+        </div>
+        <div class="isp-content">${contentHtml}</div>
+      </div>
+    `;
+  }
+  container.innerHTML = html;
 }
+
+// Funções lógicas do OS do Roteador
+function saveLanIp() {
+  const dev = devices.find(d => d.id === currentOsDevId);
+  dev.ip = document.getElementById('osLanIp').value;
+  document.getElementById('browserUrl').textContent = `http://${dev.ip}`;
+  alert('IP Local alterado com sucesso! Simulação de reinicialização concluída.');
+  render();
+}
+
+function addNat() {
+  const dev = devices.find(d => d.id === currentOsDevId);
+  const ip = document.getElementById('natIp').value;
+  const ext = document.getElementById('natExt').value;
+  const int = document.getElementById('natInt').value;
+  if(ip && ext && int) {
+    dev.natRules.push({ ip, ext, int });
+    renderOS(DEVICE_CFG[dev.type].theme, 'nat');
+  }
+}
+
+function delNat(idx) {
+  const dev = devices.find(d => d.id === currentOsDevId);
+  dev.natRules.splice(idx, 1);
+  renderOS(DEVICE_CFG[dev.type].theme, 'nat');
+}
+
 </script>
 </body>
 </html>
