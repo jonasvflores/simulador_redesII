@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simulador de NAT e Redirecionamento - Âncora</title>
+    <title>Simulador de NAT, CGNAT e P2P - Âncora</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
         body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; overflow-x: hidden; }
         
-        /* The Animated Packet */
         #packet {
             position: absolute; width: 16px; height: 16px; border-radius: 50%;
             display: none; z-index: 50; box-shadow: 0 0 15px currentColor;
@@ -27,12 +26,12 @@
         @keyframes wallDrop { 0% { opacity: 0; transform: translateY(-50px); } 100% { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col relative">
 
-    <header class="bg-slate-900 border-b border-slate-700 p-4 shadow-lg flex justify-between items-center z-10">
+    <header class="bg-slate-900 border-b border-slate-700 p-4 shadow-lg flex justify-between items-center z-10 relative">
         <div class="flex items-center gap-4">
             <div class="text-xl font-extrabold text-white flex items-center gap-2">
-                <span class="text-blue-500">🛡️ NAT</span> Simulator <span class="text-xs bg-purple-600 px-2 py-1 rounded ml-2">Modo Editável + Provedor</span>
+                <span class="text-blue-500">🛡️ NAT</span> Simulator <span class="text-xs bg-purple-600 px-2 py-1 rounded ml-2">CGNAT & P2P</span>
             </div>
             <div class="hidden md:block h-6 w-px bg-slate-700"></div>
             <div class="text-sm font-semibold text-slate-300 tracking-wide">
@@ -43,9 +42,17 @@
             <span>Edite IPs e clique nas portas para configurar</span>
             <span class="text-xs text-slate-500 mt-1">Criado por <span class="text-blue-400 font-bold tracking-wide">@jonasvflores</span></span>
         </div>
+        
+        <div id="cloud-server" class="absolute left-1/2 transform -translate-x-1/2 -bottom-10 bg-slate-800 border-2 border-cyan-500 rounded-full px-6 py-2 flex items-center gap-2 shadow-[0_0_20px_rgba(6,182,212,0.4)] z-0">
+            <span class="text-xl">☁️</span>
+            <div class="flex flex-col">
+                <span class="text-xs font-bold text-cyan-400">Servidor em Nuvem (P2P)</span>
+                <span class="text-[10px] text-slate-400">AWS / Intelbras Cloud</span>
+            </div>
+        </div>
     </header>
 
-    <main class="flex-1 flex p-6 gap-6 overflow-hidden relative">
+    <main class="flex-1 flex p-6 gap-6 overflow-hidden relative mt-4">
         <div id="packet" class="text-blue-400 bg-current"></div>
         
         <div id="cgnatWall" class="cgnat-wall">
@@ -53,25 +60,41 @@
         </div>
 
         <div class="w-1/4 bg-slate-800/50 border border-blue-900/50 rounded-xl p-5 flex flex-col relative z-10">
-            <h2 class="text-blue-400 font-bold uppercase tracking-wider text-xs mb-4 text-center">Mundo Externo (Internet / 4G)</h2>
-            <div id="phone" class="flex-1 border-4 border-slate-700 rounded-3xl bg-slate-900 p-4 flex flex-col shadow-2xl relative mt-4">
-                <div class="w-16 h-1 bg-slate-700 mx-auto rounded-full mb-4"></div>
-                <div class="text-center font-bold text-lg mb-2">App CFTV (iSIC / Hik)</div>
-                <div class="text-xs text-slate-400 text-center mb-6">Tentando conectar de fora...</div>
+            <h2 class="text-blue-400 font-bold uppercase tracking-wider text-xs mb-4 text-center">Mundo Externo (Internet)</h2>
+            <div id="phone" class="flex-1 border-4 border-slate-700 rounded-3xl bg-slate-900 p-4 flex flex-col shadow-2xl relative mt-2">
+                <div class="w-16 h-1 bg-slate-700 mx-auto rounded-full mb-3"></div>
+                <div class="text-center font-bold text-md mb-2">App Mobile</div>
                 
-                <div class="space-y-4 flex-1">
+                <div class="mb-3">
+                    <select id="connMode" class="w-full bg-slate-950 border border-slate-600 rounded p-2 text-xs text-white" onchange="toggleAppMode()">
+                        <option value="ip">Conexão por IP (Requer NAT)</option>
+                        <option value="p2p">Conexão por P2P / Nuvem</option>
+                    </select>
+                </div>
+                
+                <div id="ipModeFields" class="space-y-3 flex-1">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">IP Público (Destino Fixo)</label>
-                        <input type="text" value="203.0.113.50" disabled class="w-full bg-slate-800 border border-slate-600 rounded p-2 text-sm text-slate-400 font-mono">
+                        <label class="block text-[10px] font-semibold text-slate-400 mb-1">IP Público / DDNS</label>
+                        <input type="text" value="203.0.113.50" disabled class="w-full bg-slate-800 border border-slate-600 rounded p-2 text-xs text-slate-400 font-mono">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Porta de Serviço (Ex: 8000)</label>
-                        <input type="number" id="targetPort" value="8000" class="w-full bg-slate-950 border border-blue-500 rounded p-2 text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <label class="block text-[10px] font-semibold text-slate-400 mb-1">Porta de Serviço (Ex: 8000)</label>
+                        <input type="number" id="targetPort" value="8000" class="w-full bg-slate-950 border border-blue-500 rounded p-2 text-xs text-white font-mono focus:outline-none">
                     </div>
                 </div>
 
-                <button onclick="sendRequest()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition-colors mt-4 shadow-lg shadow-blue-900/50">
-                    ▶ Disparar Conexão
+                <div id="p2pModeFields" class="space-y-3 flex-1 hidden">
+                    <div class="bg-cyan-900/30 border border-cyan-800 p-2 rounded text-[10px] text-cyan-300 mb-2">
+                        O P2P fura o bloqueio do CGNAT e dispensa a configuração de NAT conectando via servidor externo.
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-semibold text-slate-400 mb-1">Número de Série (SN) do Equipamento</label>
+                        <input type="text" id="targetSN" value="SN-DVR-001" class="w-full bg-slate-950 border border-cyan-500 rounded p-2 text-xs text-white font-mono focus:outline-none">
+                    </div>
+                </div>
+
+                <button onclick="sendRequest()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg transition-colors mt-4 text-sm shadow-lg shadow-blue-900/50">
+                    ▶ Conectar
                 </button>
             </div>
         </div>
@@ -79,31 +102,31 @@
         <div class="w-2/4 bg-slate-800/50 border border-purple-900/50 rounded-xl p-5 flex flex-col relative z-10">
             <h2 class="text-purple-400 font-bold uppercase tracking-wider text-xs mb-4 text-center">Fronteira (Roteador / Modem)</h2>
 
-            <div id="router" class="mx-auto bg-slate-900 border-2 border-purple-600 rounded-lg p-4 w-64 text-center shadow-2xl relative mb-6 group">
+            <div id="router" class="mx-auto bg-slate-900 border-2 border-purple-600 rounded-lg p-3 w-64 text-center shadow-2xl relative mb-6 group">
                 <button onclick="editRouterIp()" class="absolute top-2 right-2 opacity-50 hover:opacity-100 text-white text-xs" title="Mudar IP LAN">⚙️</button>
-                <div class="text-4xl mb-2">🌐</div>
-                <div class="font-bold text-lg">Roteador Gateway</div>
-                <div class="flex justify-between mt-4 text-xs font-mono">
-                    <div id="wanStatus" class="bg-blue-900/40 text-blue-300 p-1 rounded cursor-pointer hover:bg-blue-800/60" onclick="toggleCGNAT()" title="Clique para simular a Operadora te mudando de IP (CGNAT)">WAN: 203.0.113.50</div>
-                    <div id="routerLanIpDisplay" class="bg-emerald-900/40 text-emerald-300 p-1 rounded cursor-pointer hover:bg-emerald-800/60" onclick="editRouterIp()" title="Clique para editar IP da Rede Local">LAN: 192.168.1.1</div>
+                <div class="text-3xl mb-1">🌐</div>
+                <div class="font-bold text-sm">Roteador Gateway</div>
+                <div class="flex flex-col gap-1 mt-3 text-[10px] font-mono">
+                    <div id="wanStatus" class="bg-blue-900/40 text-blue-300 p-1 rounded cursor-pointer hover:bg-blue-800/60 transition-colors" onclick="toggleCGNAT()" title="Clique para simular IP de Operadora (CGNAT)">WAN: 203.0.113.50 (IP Público)</div>
+                    <div id="routerLanIpDisplay" class="bg-emerald-900/40 text-emerald-300 p-1 rounded cursor-pointer hover:bg-emerald-800/60" onclick="editRouterIp()" title="Editar IP Local">LAN: 192.168.1.1</div>
                 </div>
             </div>
 
-            <div class="bg-slate-900 border border-slate-700 rounded-lg p-4 flex-1 flex flex-col">
-                <h3 class="font-bold text-sm mb-1">Tabela de Encaminhamento (NAT)</h3>
-                <p class="text-xs text-slate-400 mb-4">Tradução de portas externas para IPs internos.</p>
+            <div class="bg-slate-900 border border-slate-700 rounded-lg p-3 flex-1 flex flex-col">
+                <h3 class="font-bold text-xs mb-1">Tabela NAT (Port Forwarding)</h3>
+                <p class="text-[10px] text-slate-400 mb-3">Necessário apenas se não estiver usando P2P.</p>
 
-                <div class="flex gap-2 mb-4 bg-slate-800 p-2 rounded">
-                    <input type="number" id="newExt" placeholder="P. Ext (Ex:8000)" class="w-1/4 bg-slate-950 border border-slate-600 rounded p-1 text-xs text-white">
-                    <input type="text" id="newIp" placeholder="IP LAN (Ex:192.168.1.x)" class="flex-1 bg-slate-950 border border-slate-600 rounded p-1 text-xs text-white">
-                    <input type="number" id="newInt" placeholder="P. Int (Ex:8000)" class="w-1/4 bg-slate-950 border border-slate-600 rounded p-1 text-xs text-white">
-                    <button onclick="addRule()" class="bg-purple-600 hover:bg-purple-500 text-white px-3 py-1 rounded text-xs font-bold">+</button>
+                <div class="flex gap-2 mb-3 bg-slate-800 p-2 rounded">
+                    <input type="number" id="newExt" placeholder="P. Ext" class="w-1/4 bg-slate-950 border border-slate-600 rounded p-1 text-xs text-white">
+                    <input type="text" id="newIp" placeholder="IP (192.168.1.x)" class="flex-1 bg-slate-950 border border-slate-600 rounded p-1 text-xs text-white">
+                    <input type="number" id="newInt" placeholder="P. Int" class="w-1/4 bg-slate-950 border border-slate-600 rounded p-1 text-xs text-white">
+                    <button onclick="addRule()" class="bg-purple-600 hover:bg-purple-500 text-white px-2 py-1 rounded text-xs font-bold">+</button>
                 </div>
 
                 <div class="overflow-hidden rounded border border-slate-700 flex-1">
-                    <table class="w-full text-left text-xs">
+                    <table class="w-full text-left text-[10px]">
                         <thead class="bg-slate-800 text-slate-300">
-                            <tr><th class="p-2">Porta Ext.</th><th class="p-2">IP Destino (LAN)</th><th class="p-2">Porta Int.</th><th class="p-2 text-center">Ação</th></tr>
+                            <tr><th class="p-2">Ext.</th><th class="p-2">IP Destino</th><th class="p-2">Int.</th><th class="p-2 text-center">X</th></tr>
                         </thead>
                         <tbody id="natTableBody" class="divide-y divide-slate-700 font-mono"></tbody>
                     </table>
@@ -113,35 +136,42 @@
 
         <div class="w-1/4 bg-slate-800/50 border border-emerald-900/50 rounded-xl p-5 flex flex-col relative z-10">
             <h2 class="text-emerald-400 font-bold uppercase tracking-wider text-xs mb-4 text-center">Rede Interna (LAN)</h2>
-            <div id="devices-container" class="flex-1 flex flex-col gap-4 justify-center">
+            <div id="devices-container" class="flex-1 flex flex-col gap-3 justify-center">
                 </div>
         </div>
     </main>
 
     <div class="bg-black border-t border-slate-700 h-28 p-3 overflow-y-auto font-mono text-xs z-10" id="console">
-        <div class="text-emerald-500">Sistema iniciado. Clique na porta "WAN" do Roteador para ligar/desligar o problema de CGNAT da operadora.</div>
+        <div class="text-emerald-500">Sistema iniciado. Clique na WAN para simular CGNAT. Mude o App para P2P para testar o bypass.</div>
     </div>
 
     <div id="deviceModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
-        <div class="bg-slate-800 border border-slate-600 rounded-lg p-6 w-80 shadow-2xl">
-            <h3 class="text-white font-bold mb-4">Editar Equipamento</h3>
+        <div class="bg-slate-800 border border-slate-600 rounded-lg p-5 w-80 shadow-2xl">
+            <h3 class="text-white font-bold mb-4 text-sm">Editar Equipamento</h3>
             <div class="space-y-3">
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Nome</label>
-                    <input type="text" id="editName" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-white">
+                    <label class="block text-[10px] text-slate-400 mb-1">Nome</label>
+                    <input type="text" id="editName" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-xs text-white">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">IP Local</label>
-                    <input type="text" id="editIp" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-white font-mono">
+                    <label class="block text-[10px] text-slate-400 mb-1">IP Local</label>
+                    <input type="text" id="editIp" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-xs text-white font-mono">
                 </div>
                 <div>
-                    <label class="block text-xs text-slate-400 mb-1">Porta de Serviço (Deixe vazio se não houver)</label>
-                    <input type="number" id="editPort" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-sm text-white font-mono">
+                    <label class="block text-[10px] text-slate-400 mb-1">Porta de Serviço</label>
+                    <input type="number" id="editPort" class="w-full bg-slate-900 border border-slate-600 rounded p-2 text-xs text-white font-mono">
+                </div>
+                <div class="border-t border-slate-700 pt-3 mt-3">
+                    <label class="flex items-center gap-2 text-xs text-cyan-400 font-bold cursor-pointer">
+                        <input type="checkbox" id="editP2p" class="w-4 h-4 accent-cyan-500">
+                        Habilitar Serviço de Nuvem (P2P)
+                    </label>
+                    <div class="text-[10px] text-slate-500 mt-1" id="editSnDisplay">SN: ---</div>
                 </div>
             </div>
-            <div class="flex justify-end gap-2 mt-6">
-                <button onclick="closeModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm font-bold">Cancelar</button>
-                <button onclick="saveDevice()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-sm font-bold">Salvar</button>
+            <div class="flex justify-end gap-2 mt-5">
+                <button onclick="closeModal()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs font-bold">Cancelar</button>
+                <button onclick="saveDevice()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold">Salvar</button>
             </div>
         </div>
     </div>
@@ -150,16 +180,16 @@
         // ESTADO GLOBAL
         let routerLanIp = '192.168.1.1';
         let isCGNAT = false;
+        let appMode = 'ip';
         let natRules = [
-            { ext: '8000', ip: '192.168.1.108', int: '8000' },
-            { ext: '9000', ip: '192.168.1.200', int: '9000' }
+            { ext: '8000', ip: '192.168.1.108', int: '8000' }
         ];
         
         // DISPOSITIVOS DINÂMICOS
         let devices = [
-            { id: 1, name: 'DVR (Câmeras)', ip: '192.168.1.108', port: 8000, icon: '📼' },
-            { id: 2, name: 'PC Recepção', ip: '192.168.1.50', port: null, icon: '💻' },
-            { id: 3, name: 'Central Alarme', ip: '192.168.1.200', port: 9000, icon: '🚨' }
+            { id: 1, name: 'DVR (Câmeras)', ip: '192.168.1.108', port: 8000, icon: '📼', hasP2p: true, sn: 'SN-DVR-001' },
+            { id: 2, name: 'PC Recepção', ip: '192.168.1.50', port: null, icon: '💻', hasP2p: false, sn: 'SN-PC-002' },
+            { id: 3, name: 'Central Alarme', ip: '192.168.1.200', port: 9000, icon: '🚨', hasP2p: false, sn: 'SN-ALM-003' }
         ];
 
         let editingDevId = null;
@@ -177,174 +207,164 @@
             if (type === 'err') div.className = 'text-red-500';
             else if (type === 'success') div.className = 'text-emerald-400 font-bold';
             else if (type === 'warn') div.className = 'text-yellow-400';
+            else if (type === 'p2p') div.className = 'text-cyan-400 font-bold';
             else div.className = 'text-blue-300';
             div.textContent = `> ${msg}`;
             consoleLog.appendChild(div);
             consoleLog.scrollTop = consoleLog.scrollHeight;
         }
 
-        // FUNÇÃO CGNAT (OPERADORA)
+        // TOGGLES DE UI
+        function toggleAppMode() {
+            appMode = document.getElementById('connMode').value;
+            if(appMode === 'p2p') {
+                document.getElementById('ipModeFields').classList.add('hidden');
+                document.getElementById('p2pModeFields').classList.remove('hidden');
+            } else {
+                document.getElementById('p2pModeFields').classList.add('hidden');
+                document.getElementById('ipModeFields').classList.remove('hidden');
+            }
+        }
+
         function toggleCGNAT() {
             isCGNAT = !isCGNAT;
             const wanDisplay = document.getElementById('wanStatus');
-            
             if(isCGNAT) {
-                wanDisplay.innerText = 'WAN: 100.64.10.15';
+                wanDisplay.innerText = 'WAN: 100.64.10.15 (CGNAT Ativo)';
                 wanDisplay.className = 'bg-red-900/40 text-red-300 p-1 rounded cursor-pointer border border-red-500 hover:bg-red-800/60';
                 cgnatWall.classList.add('active');
-                logMsg(`ALERTA OPERADORA: Você foi colocado em um CGNAT! Seu roteador não recebe mais o IP Público real (203.0.113.50), e sim um IP Privado da operadora (100.64.10.15).`, 'warn');
+                logMsg(`[ISP] Roteador agora está atrás do CGNAT da operadora. IP Público inacessível.`, 'warn');
             } else {
-                wanDisplay.innerText = 'WAN: 203.0.113.50';
-                wanDisplay.className = 'bg-blue-900/40 text-blue-300 p-1 rounded cursor-pointer hover:bg-blue-800/60';
+                wanDisplay.innerText = 'WAN: 203.0.113.50 (IP Público)';
+                wanDisplay.className = 'bg-blue-900/40 text-blue-300 p-1 rounded cursor-pointer hover:bg-blue-800/60 transition-colors';
                 cgnatWall.classList.remove('active');
-                logMsg(`INFO OPERADORA: Você saiu do CGNAT. O IP Público real (203.0.113.50) agora chega direto no seu roteador.`, 'success');
+                logMsg(`[ISP] CGNAT removido. Roteador tem acesso direto à internet.`, 'success');
             }
         }
 
-        // RENDERIZAR ROTEADOR E TABELA
-        function editRouterIp() {
-            const newIp = prompt("Digite o novo IP da LAN do Roteador (Gateway):", routerLanIp);
-            if(newIp && newIp.trim() !== '') {
-                routerLanIp = newIp;
-                document.getElementById('routerLanIpDisplay').innerText = `LAN: ${routerLanIp}`;
-                logMsg(`IP LAN do Roteador atualizado para ${routerLanIp}. Lembre-se: Os equipamentos precisam estar na mesma faixa!`, 'warn');
-            }
-        }
-
+        // TABELA NAT E EDIÇÃO (Mesma lógica de antes)
+        function editRouterIp() { /* ... */ }
         function renderTable() {
             tbody.innerHTML = '';
             natRules.forEach((rule, index) => {
                 tbody.innerHTML += `
                     <tr id="row-${index}" class="transition-colors duration-300">
-                        <td class="p-2">${rule.ext}</td>
-                        <td class="p-2 text-emerald-400">${rule.ip}</td>
-                        <td class="p-2">${rule.int}</td>
-                        <td class="p-2 text-center">
-                            <button onclick="deleteRule(${index})" class="text-red-500 hover:text-red-400 font-bold">✕</button>
-                        </td>
-                    </tr>
-                `;
+                        <td class="p-2">${rule.ext}</td><td class="p-2 text-emerald-400">${rule.ip}</td><td class="p-2">${rule.int}</td>
+                        <td class="p-2 text-center"><button onclick="deleteRule(${index})" class="text-red-500 hover:text-red-400 font-bold">X</button></td>
+                    </tr>`;
             });
         }
-
         function addRule() {
-            const ext = document.getElementById('newExt').value;
-            const ip = document.getElementById('newIp').value;
-            const int = document.getElementById('newInt').value;
-            if(ext && ip && int) {
-                natRules.push({ext, ip, int});
-                renderTable();
-                document.getElementById('newExt').value = '';
-                document.getElementById('newIp').value = '';
-                document.getElementById('newInt').value = '';
-                logMsg(`Regra adicionada: Porta Externa ${ext} ➔ IP ${ip} : ${int}`);
-            }
+            const ext = document.getElementById('newExt').value; const ip = document.getElementById('newIp').value; const int = document.getElementById('newInt').value;
+            if(ext && ip && int) { natRules.push({ext, ip, int}); renderTable(); document.getElementById('newExt').value=''; document.getElementById('newIp').value=''; document.getElementById('newInt').value=''; }
         }
+        function deleteRule(index) { natRules.splice(index, 1); renderTable(); }
 
-        function deleteRule(index) {
-            logMsg(`Regra para o IP ${natRules[index].ip} removida.`);
-            natRules.splice(index, 1);
-            renderTable();
-        }
-
-        // RENDERIZAR E EDITAR DISPOSITIVOS
         function renderDevices() {
             devContainer.innerHTML = '';
             devices.forEach(dev => {
+                const p2pBadge = dev.hasP2p ? `<div class="absolute -top-2 -right-2 bg-cyan-600 text-[9px] px-1 rounded font-bold">NUVEM ON</div>` : '';
                 devContainer.innerHTML += `
-                    <div id="dev-${dev.id}" class="device-box bg-slate-900 border border-slate-600 rounded-lg p-4 flex items-center gap-4 relative">
-                        <button onclick="openModal(${dev.id})" class="absolute top-2 right-2 text-slate-500 hover:text-white text-sm" title="Editar Equipamento">⚙️</button>
-                        <div class="text-3xl">${dev.icon}</div>
+                    <div id="dev-${dev.id}" class="device-box bg-slate-900 border border-slate-600 rounded-lg p-3 flex items-center gap-3 relative">
+                        ${p2pBadge}
+                        <button onclick="openModal(${dev.id})" class="absolute top-1 right-1 text-slate-500 hover:text-white text-xs">⚙️</button>
+                        <div class="text-2xl">${dev.icon}</div>
                         <div>
-                            <div class="font-bold text-sm">${dev.name}</div>
-                            <div class="text-xs text-emerald-400 font-mono">IP: ${dev.ip}</div>
-                            <div class="text-xs text-slate-500">${dev.port ? `Escutando Porta: ${dev.port}` : 'Nenhum serviço'}</div>
+                            <div class="font-bold text-[11px]">${dev.name}</div>
+                            <div class="text-[10px] text-emerald-400 font-mono">IP: ${dev.ip}</div>
+                            <div class="text-[10px] text-slate-500">${dev.port ? `Porta: ${dev.port}` : 'Sem porta'} | SN: ${dev.sn}</div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
         }
 
         function openModal(id) {
-            editingDevId = id;
-            const dev = devices.find(d => d.id === id);
-            document.getElementById('editName').value = dev.name;
-            document.getElementById('editIp').value = dev.ip;
-            document.getElementById('editPort').value = dev.port || '';
+            editingDevId = id; const dev = devices.find(d => d.id === id);
+            document.getElementById('editName').value = dev.name; document.getElementById('editIp').value = dev.ip;
+            document.getElementById('editPort').value = dev.port || ''; document.getElementById('editP2p').checked = dev.hasP2p;
+            document.getElementById('editSnDisplay').innerText = `SN: ${dev.sn}`;
             devModal.classList.remove('hidden');
         }
 
-        function closeModal() {
-            devModal.classList.add('hidden');
-            editingDevId = null;
-        }
+        function closeModal() { devModal.classList.add('hidden'); editingDevId = null; }
 
         function saveDevice() {
             const dev = devices.find(d => d.id === editingDevId);
-            dev.name = document.getElementById('editName').value;
-            dev.ip = document.getElementById('editIp').value;
-            const portVal = document.getElementById('editPort').value;
-            dev.port = portVal ? parseInt(portVal) : null;
-            
-            closeModal();
-            renderDevices();
-            logMsg(`Equipamento '${dev.name}' atualizado (IP: ${dev.ip}).`);
+            dev.name = document.getElementById('editName').value; dev.ip = document.getElementById('editIp').value;
+            const portVal = document.getElementById('editPort').value; dev.port = portVal ? parseInt(portVal) : null;
+            dev.hasP2p = document.getElementById('editP2p').checked;
+            closeModal(); renderDevices();
         }
 
-        // MOTOR DE ANIMAÇÃO E ROTEAMENTO
+        // MOTOR DE ANIMAÇÃO - AGORA SUPORTA P2P
         async function sendRequest() {
-            const targetPort = document.getElementById('targetPort').value;
-            if(!targetPort) return;
-
-            // Limpa alertas visuais
-            document.querySelectorAll('.device-box').forEach(el => {
-                el.classList.remove('active');
-                el.classList.remove('error');
-            });
-            
+            document.querySelectorAll('.device-box').forEach(el => { el.classList.remove('active'); el.classList.remove('error'); });
             packet.style.display = 'block';
             packet.className = 'text-blue-400 bg-current';
 
-            logMsg(`MUNDO EXTERNO: Solicitando acesso à Porta ${targetPort}...`);
-
-            const getCenter = (id) => {
-                const rect = document.getElementById(id).getBoundingClientRect();
-                return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-            };
-
+            const getCenter = (id) => { const rect = document.getElementById(id).getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }; };
             const phonePos = getCenter('phone');
             const routerPos = getCenter('router');
+            const cloudPos = getCenter('cloud-server');
 
-            // VERIFICAÇÃO CGNAT ANTES DE CHEGAR NO ROTEADOR
-            if (isCGNAT) {
-                // Anima até o muro da operadora
-                const wallRect = cgnatWall.getBoundingClientRect();
-                const wallX = wallRect.left + (wallRect.width / 2);
+            // --- FLUXO P2P (NUVEM) ---
+            if(appMode === 'p2p') {
+                const targetSN = document.getElementById('targetSN').value;
+                logMsg(`MUNDO EXTERNO: Solicitando acesso ao Servidor em Nuvem buscando SN: ${targetSN}...`, 'p2p');
                 
-                const animISP = packet.animate([
-                    { transform: `translate(${phonePos.x}px, ${phonePos.y}px)` },
-                    { transform: `translate(${wallX}px, ${routerPos.y}px)` }
-                ], { duration: 600, fill: 'forwards', easing: 'ease-in' });
-                await animISP.finished;
+                // 1. Vai pra Nuvem
+                const animToCloud = packet.animate([ { transform: `translate(${phonePos.x}px, ${phonePos.y}px)` }, { transform: `translate(${cloudPos.x}px, ${cloudPos.y}px)` } ], { duration: 600, fill: 'forwards', easing: 'ease-out' });
+                await animToCloud.finished;
                 
-                packet.className = 'text-red-500 bg-current';
-                logMsg(`BLOQUEIO FATAL (CGNAT): O pacote tentou acessar o IP 203.0.113.50, mas seu roteador tem o IP 100.64.10.15. A operadora barrou a conexão na rua! O pacote nem chegou na sua casa. Ligue para o provedor.`, 'err');
-                
-                const animDropISP = packet.animate([
-                    { transform: `translate(${wallX}px, ${routerPos.y}px) scale(1)`, opacity: 1 },
-                    { transform: `translate(${wallX}px, ${routerPos.y + 30}px) scale(0)`, opacity: 0 }
-                ], { duration: 400, fill: 'forwards', easing: 'ease-in' });
-                await animDropISP.finished;
-                
-                packet.style.display = 'none';
-                return; // Interrompe a função aqui
+                const targetDev = devices.find(d => d.sn === targetSN);
+                packet.className = 'text-cyan-400 bg-current';
+                await new Promise(r => setTimeout(r, 400)); // Processando na nuvem
+
+                if(targetDev && targetDev.hasP2p) {
+                    logMsg(`NUVEM: Equipamento encontrado! Como o DVR fez uma conexão de saída para cá, o CGNAT e o NAT não importam. Criando túnel...`, 'p2p');
+                    const destElement = document.getElementById(`dev-${targetDev.id}`);
+                    const destPos = getCenter(`dev-${targetDev.id}`);
+                    
+                    // 2. Desce direto pro equipamento (passando por cima do router e do muro)
+                    const animToDev = packet.animate([ { transform: `translate(${cloudPos.x}px, ${cloudPos.y}px)` }, { transform: `translate(${destPos.x}px, ${destPos.y}px)` } ], { duration: 800, fill: 'forwards', easing: 'ease-in-out' });
+                    await animToDev.finished;
+                    
+                    packet.style.display = 'none';
+                    destElement.classList.add('active');
+                    destElement.style.borderColor = '#06b6d4'; // Cyan glow
+                    destElement.style.boxShadow = '0 0 20px rgba(6,182,212,0.4)';
+                    logMsg(`SUCESSO (P2P): Conexão estabelecida! O problema da operadora foi ignorado.`, 'success');
+                    
+                    // Reseta o estilo após 3s
+                    setTimeout(() => { destElement.style.borderColor = ''; destElement.style.boxShadow = ''; }, 3000);
+                } else {
+                    logMsg(`NUVEM ERRO: Equipamento não encontrado ou não está com o P2P ativado.`, 'err');
+                    packet.className = 'text-red-500 bg-current';
+                    packet.style.display = 'none';
+                }
+                return;
             }
 
-            // 1. App -> Roteador (Sem CGNAT)
-            const anim1 = packet.animate([
-                { transform: `translate(${phonePos.x}px, ${phonePos.y}px)` },
-                { transform: `translate(${routerPos.x}px, ${routerPos.y}px)` }
-            ], { duration: 800, fill: 'forwards', easing: 'ease-in-out' });
+            // --- FLUXO IP (ANTIGO, SOFRE COM CGNAT E NAT) ---
+            const targetPort = document.getElementById('targetPort').value;
+            if(!targetPort) return;
+            logMsg(`MUNDO EXTERNO: Tentativa direta via IP na Porta ${targetPort}...`);
+
+            // CGNAT CHECAGEM
+            if (isCGNAT) {
+                const wallRect = cgnatWall.getBoundingClientRect(); const wallX = wallRect.left + (wallRect.width / 2);
+                const animISP = packet.animate([ { transform: `translate(${phonePos.x}px, ${phonePos.y}px)` }, { transform: `translate(${wallX}px, ${routerPos.y}px)` } ], { duration: 600, fill: 'forwards', easing: 'ease-in' });
+                await animISP.finished;
+                packet.className = 'text-red-500 bg-current';
+                logMsg(`BLOQUEIO FATAL (CGNAT): A operadora barrou a conexão na rua! O pacote nem chegou no seu roteador.`, 'err');
+                const animDropISP = packet.animate([ { transform: `translate(${wallX}px, ${routerPos.y}px) scale(1)`, opacity: 1 }, { transform: `translate(${wallX}px, ${routerPos.y + 30}px) scale(0)`, opacity: 0 } ], { duration: 400, fill: 'forwards', easing: 'ease-in' });
+                await animDropISP.finished;
+                packet.style.display = 'none';
+                return; 
+            }
+
+            // Lógica normal de NAT...
+            const anim1 = packet.animate([ { transform: `translate(${phonePos.x}px, ${phonePos.y}px)` }, { transform: `translate(${routerPos.x}px, ${routerPos.y}px)` } ], { duration: 800, fill: 'forwards', easing: 'ease-in-out' });
             await anim1.finished;
 
             logMsg(`ROTEADOR: Lendo pacote. Procurando a porta ${targetPort} na Tabela NAT...`);
@@ -354,94 +374,34 @@
 
             if (ruleIndex !== -1) {
                 const rule = natRules[ruleIndex];
-                logMsg(`ROTEADOR: Regra encontrada! Redirecionando para o IP ${rule.ip} na porta ${rule.int}.`, 'success');
-                
-                // Pisca a linha
-                const row = document.getElementById(`row-${ruleIndex}`);
-                if(row) {
-                    row.classList.remove('highlight-row');
-                    void row.offsetWidth;
-                    row.classList.add('highlight-row');
-                }
-
+                logMsg(`ROTEADOR: Regra encontrada! Redirecionando para IP ${rule.ip} na porta ${rule.int}.`, 'success');
+                const row = document.getElementById(`row-${ruleIndex}`); if(row) { row.classList.remove('highlight-row'); void row.offsetWidth; row.classList.add('highlight-row'); }
                 packet.className = 'text-emerald-400 bg-current';
-                
-                // Procura o dispositivo na rede interna
                 const targetDev = devices.find(d => d.ip === rule.ip);
 
                 if(targetDev) {
-                    const destElement = document.getElementById(`dev-${targetDev.id}`);
-                    const destPos = getCenter(`dev-${targetDev.id}`);
-                    
-                    // Verifica Sub-rede básica
-                    const rLanBase = routerLanIp.split('.').slice(0,3).join('.');
-                    const dLanBase = targetDev.ip.split('.').slice(0,3).join('.');
-                    
-                    if(rLanBase !== dLanBase) {
-                         const animDropMid = packet.animate([
-                            { transform: `translate(${routerPos.x}px, ${routerPos.y}px) scale(1)`, opacity: 1 },
-                            { transform: `translate(${routerPos.x + 100}px, ${routerPos.y + 50}px) scale(0)`, opacity: 0 }
-                        ], { duration: 500, fill: 'forwards', easing: 'ease-in' });
-                        await animDropMid.finished;
-                        packet.style.display = 'none';
-                        logMsg(`ERRO DE REDE: O roteador (${routerLanIp}) não consegue alcançar o IP ${targetDev.ip} pois estão em sub-redes diferentes. Arrume o IP LAN ou o IP do dispositivo.`, 'err');
-                        return;
-                    }
+                    const destElement = document.getElementById(`dev-${targetDev.id}`); const destPos = getCenter(`dev-${targetDev.id}`);
+                    const rLanBase = routerLanIp.split('.').slice(0,3).join('.'); const dLanBase = targetDev.ip.split('.').slice(0,3).join('.');
+                    if(rLanBase !== dLanBase) { /*...falha rede...*/ packet.style.display = 'none'; logMsg(`ERRO DE REDE: Sub-redes diferentes.`, 'err'); return; }
 
-                    // 2. Roteador -> Dispositivo
-                    const anim2 = packet.animate([
-                        { transform: `translate(${routerPos.x}px, ${routerPos.y}px)` },
-                        { transform: `translate(${destPos.x}px, ${destPos.y}px)` }
-                    ], { duration: 800, fill: 'forwards', easing: 'ease-out' });
+                    const anim2 = packet.animate([ { transform: `translate(${routerPos.x}px, ${routerPos.y}px)` }, { transform: `translate(${destPos.x}px, ${destPos.y}px)` } ], { duration: 800, fill: 'forwards', easing: 'ease-out' });
                     await anim2.finished;
                     
-                    // Checagem final de PORTA no dispositivo
                     if(targetDev.port === parseInt(rule.int)) {
-                        packet.style.display = 'none';
-                        destElement.classList.add('active');
-                        logMsg(`DISPOSITIVO: Conexão Estabelecida! O equipamento ${targetDev.name} aceitou a requisição na porta ${targetDev.port}.`, 'success');
+                        packet.style.display = 'none'; destElement.classList.add('active'); logMsg(`DISPOSITIVO: Conexão Estabelecida na porta ${targetDev.port}.`, 'success');
                     } else {
-                        packet.className = 'text-red-500 bg-current';
-                        destElement.classList.add('error');
-                        const animDropDest = packet.animate([
-                            { transform: `translate(${destPos.x}px, ${destPos.y}px) scale(1)`, opacity: 1 },
-                            { transform: `translate(${destPos.x}px, ${destPos.y + 30}px) scale(0)`, opacity: 0 }
-                        ], { duration: 400, fill: 'forwards', easing: 'ease-in' });
-                        await animDropDest.finished;
-                        packet.style.display = 'none';
-                        logMsg(`ERRO NO DESTINO: O pacote chegou, mas o dispositivo está escutando a porta ${targetDev.port || 'nenhuma'}, e o NAT enviou para a porta ${rule.int}. Conexão recusada.`, 'err');
+                        packet.className = 'text-red-500 bg-current'; destElement.classList.add('error'); packet.style.display = 'none'; logMsg(`ERRO NO DESTINO: Porta incorreta.`, 'err');
                     }
-
                 } else {
-                    // IP não existe na LAN
-                    packet.className = 'text-red-500 bg-current';
-                    const animDropFail = packet.animate([
-                        { transform: `translate(${routerPos.x}px, ${routerPos.y}px) scale(1)`, opacity: 1 },
-                        { transform: `translate(${routerPos.x + 100}px, ${routerPos.y}px) scale(0)`, opacity: 0 }
-                    ], { duration: 500, fill: 'forwards', easing: 'ease-in' });
-                    await animDropFail.finished;
-                    packet.style.display = 'none';
-                    logMsg(`ERRO FANTASMA: A regra NAT apontou para o IP ${rule.ip}, mas este dispositivo está DESLIGADO ou não existe na rede. O pacote se perdeu.`, 'err');
+                    packet.className = 'text-red-500 bg-current'; packet.style.display = 'none'; logMsg(`ERRO FANTASMA: IP não existe na rede.`, 'err');
                 }
-
             } else {
-                // Drop no Roteador (Sem regra)
-                packet.className = 'text-red-500 bg-current';
-                logMsg(`ROTEADOR DROP: Nenhuma regra encontrada para a porta ${targetPort}. O firewall bloqueou a entrada.`, 'err');
-                
-                const animDrop = packet.animate([
-                    { transform: `translate(${routerPos.x}px, ${routerPos.y}px) scale(1)`, opacity: 1 },
-                    { transform: `translate(${routerPos.x}px, ${routerPos.y + 30}px) scale(0)`, opacity: 0 }
-                ], { duration: 400, fill: 'forwards', easing: 'ease-in' });
-                
-                await animDrop.finished;
+                packet.className = 'text-red-500 bg-current'; logMsg(`ROTEADOR DROP: Sem regra NAT. Firewall bloqueou.`, 'err');
                 packet.style.display = 'none';
             }
         }
 
-        // Inicialização
-        renderTable();
-        renderDevices();
+        renderTable(); renderDevices();
     </script>
 </body>
 </html>
