@@ -21,6 +21,10 @@
         .device-box { transition: all 0.3s; }
         .device-box.active { border-color: #10b981; box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); transform: scale(1.05); }
         .device-box.error { border-color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); transform: scale(1.05); }
+        
+        .cgnat-wall { display: none; position: absolute; left: 28%; top: 30%; height: 40%; width: 10px; background: repeating-linear-gradient(45deg, #ef4444, #ef4444 10px, #b91c1c 10px, #b91c1c 20px); border-radius: 4px; box-shadow: 0 0 15px rgba(239, 68, 68, 0.5); z-index: 40; }
+        .cgnat-wall.active { display: block; animation: wallDrop 0.5s ease-out; }
+        @keyframes wallDrop { 0% { opacity: 0; transform: translateY(-50px); } 100% { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -28,7 +32,7 @@
     <header class="bg-slate-900 border-b border-slate-700 p-4 shadow-lg flex justify-between items-center z-10">
         <div class="flex items-center gap-4">
             <div class="text-xl font-extrabold text-white flex items-center gap-2">
-                <span class="text-blue-500">🛡️ NAT</span> Simulator <span class="text-xs bg-purple-600 px-2 py-1 rounded ml-2">Modo Editável</span>
+                <span class="text-blue-500">🛡️ NAT</span> Simulator <span class="text-xs bg-purple-600 px-2 py-1 rounded ml-2">Modo Editável + Provedor</span>
             </div>
             <div class="hidden md:block h-6 w-px bg-slate-700"></div>
             <div class="text-sm font-semibold text-slate-300 tracking-wide">
@@ -36,13 +40,17 @@
             </div>
         </div>
         <div class="text-sm text-slate-400 text-right flex flex-col items-end">
-            <span>Edite IPs e Portas para testar conexões</span>
+            <span>Edite IPs e clique nas portas para configurar</span>
             <span class="text-xs text-slate-500 mt-1">Criado por <span class="text-blue-400 font-bold tracking-wide">@jonasvflores</span></span>
         </div>
     </header>
 
     <main class="flex-1 flex p-6 gap-6 overflow-hidden relative">
         <div id="packet" class="text-blue-400 bg-current"></div>
+        
+        <div id="cgnatWall" class="cgnat-wall">
+            <div class="absolute -top-6 -left-12 text-xs font-bold text-red-400 bg-slate-900 px-2 rounded border border-red-500 whitespace-nowrap">BLOQUEIO ISP (CGNAT)</div>
+        </div>
 
         <div class="w-1/4 bg-slate-800/50 border border-blue-900/50 rounded-xl p-5 flex flex-col relative z-10">
             <h2 class="text-blue-400 font-bold uppercase tracking-wider text-xs mb-4 text-center">Mundo Externo (Internet / 4G)</h2>
@@ -76,8 +84,8 @@
                 <div class="text-4xl mb-2">🌐</div>
                 <div class="font-bold text-lg">Roteador Gateway</div>
                 <div class="flex justify-between mt-4 text-xs font-mono">
-                    <div class="bg-blue-900/40 text-blue-300 p-1 rounded">WAN: 203.0.113.50</div>
-                    <div id="routerLanIpDisplay" class="bg-emerald-900/40 text-emerald-300 p-1 rounded cursor-pointer hover:bg-emerald-800/60" onclick="editRouterIp()">LAN: 192.168.1.1</div>
+                    <div id="wanStatus" class="bg-blue-900/40 text-blue-300 p-1 rounded cursor-pointer hover:bg-blue-800/60" onclick="toggleCGNAT()" title="Clique para simular a Operadora te mudando de IP (CGNAT)">WAN: 203.0.113.50</div>
+                    <div id="routerLanIpDisplay" class="bg-emerald-900/40 text-emerald-300 p-1 rounded cursor-pointer hover:bg-emerald-800/60" onclick="editRouterIp()" title="Clique para editar IP da Rede Local">LAN: 192.168.1.1</div>
                 </div>
             </div>
 
@@ -111,7 +119,7 @@
     </main>
 
     <div class="bg-black border-t border-slate-700 h-28 p-3 overflow-y-auto font-mono text-xs z-10" id="console">
-        <div class="text-emerald-500">Sistema iniciado. Você pode clicar nas engrenagens (⚙️) para editar IPs e Portas.</div>
+        <div class="text-emerald-500">Sistema iniciado. Clique na porta "WAN" do Roteador para ligar/desligar o problema de CGNAT da operadora.</div>
     </div>
 
     <div id="deviceModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -141,7 +149,9 @@
     <script>
         // ESTADO GLOBAL
         let routerLanIp = '192.168.1.1';
+        let isCGNAT = false;
         let natRules = [
+            { ext: '8000', ip: '192.168.1.108', int: '8000' },
             { ext: '9000', ip: '192.168.1.200', int: '9000' }
         ];
         
@@ -160,6 +170,7 @@
         const packet = document.getElementById('packet');
         const devContainer = document.getElementById('devices-container');
         const devModal = document.getElementById('deviceModal');
+        const cgnatWall = document.getElementById('cgnatWall');
 
         function logMsg(msg, type = 'info') {
             const div = document.createElement('div');
@@ -170,6 +181,24 @@
             div.textContent = `> ${msg}`;
             consoleLog.appendChild(div);
             consoleLog.scrollTop = consoleLog.scrollHeight;
+        }
+
+        // FUNÇÃO CGNAT (OPERADORA)
+        function toggleCGNAT() {
+            isCGNAT = !isCGNAT;
+            const wanDisplay = document.getElementById('wanStatus');
+            
+            if(isCGNAT) {
+                wanDisplay.innerText = 'WAN: 100.64.10.15';
+                wanDisplay.className = 'bg-red-900/40 text-red-300 p-1 rounded cursor-pointer border border-red-500 hover:bg-red-800/60';
+                cgnatWall.classList.add('active');
+                logMsg(`ALERTA OPERADORA: Você foi colocado em um CGNAT! Seu roteador não recebe mais o IP Público real (203.0.113.50), e sim um IP Privado da operadora (100.64.10.15).`, 'warn');
+            } else {
+                wanDisplay.innerText = 'WAN: 203.0.113.50';
+                wanDisplay.className = 'bg-blue-900/40 text-blue-300 p-1 rounded cursor-pointer hover:bg-blue-800/60';
+                cgnatWall.classList.remove('active');
+                logMsg(`INFO OPERADORA: Você saiu do CGNAT. O IP Público real (203.0.113.50) agora chega direto no seu roteador.`, 'success');
+            }
         }
 
         // RENDERIZAR ROTEADOR E TABELA
@@ -286,7 +315,32 @@
             const phonePos = getCenter('phone');
             const routerPos = getCenter('router');
 
-            // 1. App -> Roteador
+            // VERIFICAÇÃO CGNAT ANTES DE CHEGAR NO ROTEADOR
+            if (isCGNAT) {
+                // Anima até o muro da operadora
+                const wallRect = cgnatWall.getBoundingClientRect();
+                const wallX = wallRect.left + (wallRect.width / 2);
+                
+                const animISP = packet.animate([
+                    { transform: `translate(${phonePos.x}px, ${phonePos.y}px)` },
+                    { transform: `translate(${wallX}px, ${routerPos.y}px)` }
+                ], { duration: 600, fill: 'forwards', easing: 'ease-in' });
+                await animISP.finished;
+                
+                packet.className = 'text-red-500 bg-current';
+                logMsg(`BLOQUEIO FATAL (CGNAT): O pacote tentou acessar o IP 203.0.113.50, mas seu roteador tem o IP 100.64.10.15. A operadora barrou a conexão na rua! O pacote nem chegou na sua casa. Ligue para o provedor.`, 'err');
+                
+                const animDropISP = packet.animate([
+                    { transform: `translate(${wallX}px, ${routerPos.y}px) scale(1)`, opacity: 1 },
+                    { transform: `translate(${wallX}px, ${routerPos.y + 30}px) scale(0)`, opacity: 0 }
+                ], { duration: 400, fill: 'forwards', easing: 'ease-in' });
+                await animDropISP.finished;
+                
+                packet.style.display = 'none';
+                return; // Interrompe a função aqui
+            }
+
+            // 1. App -> Roteador (Sem CGNAT)
             const anim1 = packet.animate([
                 { transform: `translate(${phonePos.x}px, ${phonePos.y}px)` },
                 { transform: `translate(${routerPos.x}px, ${routerPos.y}px)` }
@@ -319,19 +373,18 @@
                     const destElement = document.getElementById(`dev-${targetDev.id}`);
                     const destPos = getCenter(`dev-${targetDev.id}`);
                     
-                    // Verifica Sub-rede básica (Compara os 3 primeiros blocos do IP - lógica simples didática)
+                    // Verifica Sub-rede básica
                     const rLanBase = routerLanIp.split('.').slice(0,3).join('.');
                     const dLanBase = targetDev.ip.split('.').slice(0,3).join('.');
                     
                     if(rLanBase !== dLanBase) {
-                         // Animação caindo no meio do caminho (Fora de rede)
                          const animDropMid = packet.animate([
                             { transform: `translate(${routerPos.x}px, ${routerPos.y}px) scale(1)`, opacity: 1 },
                             { transform: `translate(${routerPos.x + 100}px, ${routerPos.y + 50}px) scale(0)`, opacity: 0 }
                         ], { duration: 500, fill: 'forwards', easing: 'ease-in' });
                         await animDropMid.finished;
                         packet.style.display = 'none';
-                        logMsg(`ERRO DE REDE: O roteador (${routerLanIp}) não consegue alcançar o IP ${targetDev.ip} pois estão em sub-redes diferentes.`, 'err');
+                        logMsg(`ERRO DE REDE: O roteador (${routerLanIp}) não consegue alcançar o IP ${targetDev.ip} pois estão em sub-redes diferentes. Arrume o IP LAN ou o IP do dispositivo.`, 'err');
                         return;
                     }
 
@@ -348,7 +401,6 @@
                         destElement.classList.add('active');
                         logMsg(`DISPOSITIVO: Conexão Estabelecida! O equipamento ${targetDev.name} aceitou a requisição na porta ${targetDev.port}.`, 'success');
                     } else {
-                        // Porta não bate (Drop no destino)
                         packet.className = 'text-red-500 bg-current';
                         destElement.classList.add('error');
                         const animDropDest = packet.animate([
@@ -357,7 +409,6 @@
                         ], { duration: 400, fill: 'forwards', easing: 'ease-in' });
                         await animDropDest.finished;
                         packet.style.display = 'none';
-                        
                         logMsg(`ERRO NO DESTINO: O pacote chegou, mas o dispositivo está escutando a porta ${targetDev.port || 'nenhuma'}, e o NAT enviou para a porta ${rule.int}. Conexão recusada.`, 'err');
                     }
 
